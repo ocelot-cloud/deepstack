@@ -30,5 +30,3 @@ func TestLoggingWithStackTrace(t *testing.T) {
 func subfunction(logger DeepStackLogger) error {
 	return logger.NewError("an error occurred", "key1", "value1")
 }
-
-// TODO maybe I should create a small, reusable logging library in a separate repository
