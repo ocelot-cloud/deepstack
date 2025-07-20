@@ -137,46 +137,46 @@ type DeepStackLoggerImpl struct {
 	enableWarningsForNonDeepStackErrors bool
 }
 
-func (m *DeepStackLoggerImpl) log(level string, msg string, kv ...any) {
+func (m *DeepStackLoggerImpl) log(level string, msg string, keyValuePairs ...any) {
 	if m.logger.ShouldLogBeSkipped(level) {
 		return
 	}
 
-	rec := m.logger.CreateLogRecord(level, msg)
+	record := m.logger.CreateLogRecord(level, msg)
 	var stackTrace string
-	for i := 0; i+1 < len(kv); i += 2 {
-		key, ok := kv[i].(string)
+	for i := 0; i+1 < len(keyValuePairs); i += 2 {
+		key, ok := keyValuePairs[i].(string)
 		if !ok {
 			m.logger.LogWarning("invalid key type in log message, must always be string", "type", reflect.TypeOf(key).String())
 			continue // TODO can be removed without causing tests to fai, fix this
 		}
 
+		value := keyValuePairs[i+1]
 		if key == ErrorField {
-			value := kv[i+1]
-			stackTrace = m.handleErrorField(rec, key, value)
+			stackTrace = m.handleErrorField(record, key, value)
 		} else {
-			rec.AddAttrs(key, kv[i+1])
+			record.AddAttrs(key, value)
 		}
 	}
-	m.logger.HandleRecord(rec)
+	m.logger.HandleRecord(record)
 	if stackTrace != "" {
 		m.logger.Println(stackTrace)
 	}
 }
 
-func (m *DeepStackLoggerImpl) handleErrorField(rec *LogRecord, key string, value any) string {
+func (m *DeepStackLoggerImpl) handleErrorField(record *LogRecord, key string, value any) string {
 	detailedError, ok := value.(*DeepStackError)
 	if ok {
-		for k, v := range detailedError.Context {
-			rec.AddAttrs(k, v)
+		for contextKey, contextValue := range detailedError.Context {
+			record.AddAttrs(contextKey, contextValue)
 		}
-		rec.AddAttrs("stack_trace", detailedError.StackTrace)
+		record.AddAttrs("stack_trace", detailedError.StackTrace)
 		return detailedError.StackTrace
 	} else {
 		if m.enableWarningsForNonDeepStackErrors {
 			m.logger.LogWarning("invalid error type in log message, must be *DeepStackError")
 		}
-		rec.AddAttrs(key, value)
+		record.AddAttrs(key, value)
 		return ""
 	}
 }

@@ -30,8 +30,12 @@ func (s *LoggingBackendImpl) ShouldLogBeSkipped(level string) bool {
 }
 
 func (s *LoggingBackendImpl) HandleRecord(logRecord *LogRecord) {
+	s.logRecord(logRecord, 4)
+}
+
+func (s *LoggingBackendImpl) logRecord(logRecord *LogRecord, skipFunctionTreeLevels int) {
 	var pcs [1]uintptr
-	runtime.Callers(4, pcs[:])
+	runtime.Callers(skipFunctionTreeLevels, pcs[:])
 	slogLevel := convertToSlogLevel(logRecord.level)
 	slogRecord := slog.NewRecord(time.Now(), slogLevel, logRecord.msg, pcs[0])
 
@@ -52,7 +56,8 @@ func (s *LoggingBackendImpl) CreateLogRecord(level string, msg string) *LogRecor
 
 func (s *LoggingBackendImpl) LogWarning(message string, kv ...any) {
 	if len(kv) == 0 {
-		s.slog.Warn(message)
+		record := s.CreateLogRecord("warn", message)
+		s.logRecord(record, 6)
 	} else if len(kv) == 2 {
 		key, ok := kv[0].(string)
 		if !ok {

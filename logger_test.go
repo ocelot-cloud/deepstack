@@ -14,7 +14,7 @@ func TestLoggingVisually(t *testing.T) {
 	logger.Warn("This is a warning message")
 	logger.Error("This is an error message")
 
-	logger.Info("This is an info message", "key1", "value1", "key2", "value2")
+	logger.Info("This is an info message", "key1", "value1", "key2", "value 2")
 	logger.Error("This is an info message", ErrorField, "some-error")
 	logger.Error("This is an info message", ErrorField, errors.New("some-error"))
 }
@@ -96,6 +96,6 @@ func TestLogInvalidKeyType(t *testing.T) {
 	)
 	m.EXPECT().HandleRecord(rec)
 
-	l.log("info", "msg", 123, "value1")
+	l.log("info", "msg", 123, "value1", "key2", "value2")
 	m.AssertExpectations(t)
 }
