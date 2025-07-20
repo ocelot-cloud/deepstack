@@ -152,20 +152,8 @@ func (m *DeepStackLoggerImpl) log(level string, msg string, kv ...any) {
 		}
 
 		if key == ErrorField {
-			// TODO when unit tests are written, extract that to a separate function like "m.handleErrorField()"
-			detailedError, ok := kv[i+1].(*DeepStackError)
-			if ok {
-				for k, v := range detailedError.Context {
-					rec.AddAttrs(k, v)
-				}
-				rec.AddAttrs("stack_trace", detailedError.StackTrace)
-				stackTrace = detailedError.StackTrace
-			} else {
-				if m.enableWarningsForNonDeepStackErrors {
-					m.logger.LogWarning("invalid error type in log message, must be *DeepStackError")
-				}
-				rec.AddAttrs(key, kv[i+1])
-			}
+			value := kv[i+1]
+			stackTrace = m.handleErrorField(rec, key, value)
 		} else {
 			rec.AddAttrs(key, kv[i+1])
 		}
@@ -173,6 +161,23 @@ func (m *DeepStackLoggerImpl) log(level string, msg string, kv ...any) {
 	m.logger.HandleRecord(rec)
 	if stackTrace != "" {
 		m.logger.Println(stackTrace)
+	}
+}
+
+func (m *DeepStackLoggerImpl) handleErrorField(rec *LogRecord, key string, value any) string {
+	detailedError, ok := value.(*DeepStackError)
+	if ok {
+		for k, v := range detailedError.Context {
+			rec.AddAttrs(k, v)
+		}
+		rec.AddAttrs("stack_trace", detailedError.StackTrace)
+		return detailedError.StackTrace
+	} else {
+		if m.enableWarningsForNonDeepStackErrors {
+			m.logger.LogWarning("invalid error type in log message, must be *DeepStackError")
+		}
+		rec.AddAttrs(key, value)
+		return ""
 	}
 }
 
