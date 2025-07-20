@@ -13,7 +13,7 @@ type LoggingBackend interface {
 	CreateLogRecord(level string, msg string) *LogRecord
 	HandleRecord(logRecord *LogRecord)
 	Println(message string)
-	LogWarning()
+	LogWarning(message string, kv ...any)
 }
 
 type LoggingBackendImpl struct {
@@ -50,6 +50,15 @@ func (s *LoggingBackendImpl) CreateLogRecord(level string, msg string) *LogRecor
 	}
 }
 
-func (s *LoggingBackendImpl) LogWarning() {
-	s.slog.Warn("invalid error type in log message, must be *DeepStackError")
+func (s *LoggingBackendImpl) LogWarning(message string, kv ...any) {
+	if len(kv) == 0 {
+		s.slog.Warn(message)
+	} else if len(kv) == 2 {
+		key, ok := kv[0].(string)
+		if !ok {
+			s.slog.Warn("invalid key type in log message, must always be string", slog.Any("key", kv[0]))
+			return
+		}
+		s.slog.Warn(message, slog.Any(key, kv[1]))
+	}
 }

@@ -77,7 +77,7 @@ func TestLogNormalErrorWithWarning(t *testing.T) {
 	l, m := newLogger(t, true)
 	m.EXPECT().ShouldLogBeSkipped("error").Return(false)
 	m.EXPECT().CreateLogRecord("error", "msg").Return(GetSampleLogRecord())
-	m.EXPECT().LogInvalidErrorTypeWarning()
+	m.EXPECT().LogWarning("invalid error type in log message, must be *DeepStackError")
 	m.EXPECT().HandleRecord(mock.Anything)
 	l.log("error", "msg", ErrorField, errors.New("e"))
 	m.AssertExpectations(t)

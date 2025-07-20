@@ -147,7 +147,7 @@ func (m *DeepStackLoggerImpl) log(level string, msg string, kv ...any) {
 	for i := 0; i+1 < len(kv); i += 2 {
 		key, ok := kv[i].(string)
 		if !ok {
-			m.Warn("invalid key type in log message, must always be string", "key", key)
+			m.logger.LogWarning("invalid key type in log message, must always be string", "key", key)
 			continue
 		}
 
@@ -162,7 +162,7 @@ func (m *DeepStackLoggerImpl) log(level string, msg string, kv ...any) {
 				stackTrace = detailedError.StackTrace
 			} else {
 				if m.enableWarningsForNonDeepStackErrors {
-					m.logger.LogWarning()
+					m.logger.LogWarning("invalid error type in log message, must be *DeepStackError")
 				}
 				rec.AddAttrs(key, kv[i+1])
 			}
