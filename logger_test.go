@@ -6,7 +6,7 @@ import (
 )
 
 func TestLoggingVisually(t *testing.T) {
-	logger := NewDeepStackLogger("debug", true, false)
+	logger := NewDeepStackLogger("debug", false)
 	logger.Debug("This is a debug message")
 	logger.Info("This is an info message")
 	logger.Warn("This is a warning message")
@@ -18,12 +18,12 @@ func TestLoggingVisually(t *testing.T) {
 }
 
 func TestLoggingVisuallyOfNormalError(t *testing.T) {
-	logger := NewDeepStackLogger("debug", true, true)
+	logger := NewDeepStackLogger("debug", true)
 	logger.Error("testing normal error", ErrorField, errors.New("some-error"), "key1", "value1")
 }
 
 func TestLoggingWithStackTrace(t *testing.T) {
-	logger := NewDeepStackLogger("debug", true, true)
+	logger := NewDeepStackLogger("debug", true)
 	logger.Error("testing detailed error", ErrorField, subfunction(logger))
 }
 

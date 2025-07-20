@@ -20,7 +20,7 @@ type DeepStackLogger interface {
 }
 
 // idea for later: add the software version to the log so that "source" attribute deterministally references its origin
-func NewDeepStackLogger(logLevel string, showCallerFile, enableWarningsForNonDeepStackErrors bool) DeepStackLogger {
+func NewDeepStackLogger(logLevel string, enableWarningsForNonDeepStackErrors bool) DeepStackLogger {
 	logDir := "data/logs"
 	if err := os.MkdirAll(logDir, 0700); err != nil {
 		panic(fmt.Sprintf("Failed to create logs directory: %v", err))
@@ -37,20 +37,18 @@ func NewDeepStackLogger(logLevel string, showCallerFile, enableWarningsForNonDee
 	slogLogLevel := convertToSlogLevel(logLevel)
 
 	opts := &slog.HandlerOptions{
-		AddSource:   showCallerFile,
+		AddSource:   true,
 		Level:       slogLogLevel,
 		ReplaceAttr: replaceSource,
 	}
 
 	fileHandler := slog.NewJSONHandler(logFile, opts)
-	consoleHandler := newConsoleHandler(os.Stdout, showCallerFile, slogLogLevel, dropStackTrace)
-	/*tint.NewHandler(os.Stdout, &tint.Options{
-		AddSource: showCallerFile,
-		Level:     slogLogLevel,
-		// drop stack trace in the console output log line as we print it prettily below
+	base := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		AddSource:   true,
+		Level:       slogLogLevel,
 		ReplaceAttr: dropStackTrace,
 	})
-	*/
+	consoleHandler := &coloredConsoleHandler{Handler: base, w: os.Stdout}
 
 	logger := slog.New(multiHandler{fileHandler, consoleHandler})
 	return &DeepStackLoggerImpl{
@@ -62,16 +60,6 @@ func NewDeepStackLogger(logLevel string, showCallerFile, enableWarningsForNonDee
 type coloredConsoleHandler struct {
 	slog.Handler
 	w io.Writer
-}
-
-func newConsoleHandler(w io.Writer, addSource bool, lvl slog.Level,
-	rep func(groups []string, a slog.Attr) slog.Attr) slog.Handler {
-	base := slog.NewTextHandler(w, &slog.HandlerOptions{
-		AddSource:   addSource,
-		Level:       lvl,
-		ReplaceAttr: rep,
-	})
-	return &coloredConsoleHandler{Handler: base, w: w}
 }
 
 var lvlColor = map[slog.Level]string{

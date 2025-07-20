@@ -7,7 +7,7 @@ import (
 )
 
 func TestErrorToString(t *testing.T) {
-	logger := NewDeepStackLogger("debug", true, false)
+	logger := NewDeepStackLogger("debug", false)
 	testError := logger.NewError("an error occurred", "key1", "value1")
 
 	detailedTestError, ok := testError.(*DeepStackError)
