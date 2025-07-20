@@ -3,5 +3,5 @@ packages:
     interfaces:
       LoggingBackend:
         config:
-          filename: logging_backend_mock.go
+          filename: backend_mock.go
           structname: LoggingBackendMock
