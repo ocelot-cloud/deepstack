@@ -1,4 +1,4 @@
-package utils
+package deepstack
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"time"
 )
 
+//go:generate mockery
 type LoggingBackend interface {
 	ShouldLogBeSkipped(level string) bool
 	CreateLogRecord(level string, msg string) *LogRecord

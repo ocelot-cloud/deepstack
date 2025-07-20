@@ -1,0 +1,7 @@
+packages:
+  deepstack:
+    interfaces:
+      LoggingBackend:
+        config:
+          filename: logging_backend_mock.go
+          structname: LoggingBackendMock

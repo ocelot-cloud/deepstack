@@ -1,4 +1,4 @@
-package utils
+package deepstack
 
 import (
 	"context"
@@ -43,6 +43,7 @@ func NewDeepStackLogger(logLevel string, showCallerFile, enableWarningsForNonDee
 	}
 
 	fileHandler := slog.NewJSONHandler(logFile, opts)
+	// TODO remove tint library by sth self-written
 	consoleHandler := tint.NewHandler(os.Stdout, &tint.Options{
 		AddSource: showCallerFile,
 		Level:     slogLogLevel,

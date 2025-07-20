@@ -1,4 +1,4 @@
-package utils
+package deepstack
 
 import (
 	"github.com/stretchr/testify/assert"
