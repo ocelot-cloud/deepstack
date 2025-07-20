@@ -30,3 +30,16 @@ func TestLoggingWithStackTrace(t *testing.T) {
 func subfunction(logger DeepStackLogger) error {
 	return logger.NewError("an error occurred", "key1", "value1")
 }
+
+func TestStuff(t *testing.T) {
+	backendMock := NewLoggingBackendMock(t)
+	logger := DeepStackLoggerImpl{
+		logger:                              backendMock,
+		enableWarningsForNonDeepStackErrors: false,
+	}
+
+	backendMock.EXPECT().ShouldLogBeSkipped("debug").Return(true)
+	logger.log("debug", "test message", "key1", "value1", "key2", "value2")
+
+	backendMock.AssertExpectations(t)
+}

@@ -144,7 +144,6 @@ func (m *DeepStackLoggerImpl) log(level string, msg string, kv ...any) {
 
 	rec := m.logger.CreateLogRecord(level, msg)
 	var stackTrace string
-
 	for i := 0; i+1 < len(kv); i += 2 {
 		key, ok := kv[i].(string)
 		if !ok {
