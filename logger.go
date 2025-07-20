@@ -162,7 +162,7 @@ func (m *DeepStackLoggerImpl) log(level string, msg string, kv ...any) {
 				stackTrace = detailedError.StackTrace
 			} else {
 				if m.enableWarningsForNonDeepStackErrors {
-					m.logger.LogInvalidErrorTypeWarning()
+					m.logger.LogWarning()
 				}
 				rec.AddAttrs(key, kv[i+1])
 			}

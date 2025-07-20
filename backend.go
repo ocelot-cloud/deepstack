@@ -13,7 +13,7 @@ type LoggingBackend interface {
 	CreateLogRecord(level string, msg string) *LogRecord
 	HandleRecord(logRecord *LogRecord)
 	Println(message string)
-	LogInvalidErrorTypeWarning()
+	LogWarning()
 }
 
 type LoggingBackendImpl struct {
@@ -50,6 +50,6 @@ func (s *LoggingBackendImpl) CreateLogRecord(level string, msg string) *LogRecor
 	}
 }
 
-func (s *LoggingBackendImpl) LogInvalidErrorTypeWarning() {
+func (s *LoggingBackendImpl) LogWarning() {
 	s.slog.Warn("invalid error type in log message, must be *DeepStackError")
 }

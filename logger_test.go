@@ -2,6 +2,7 @@ package deepstack
 
 import (
 	"errors"
+	"github.com/stretchr/testify/mock"
 	"testing"
 )
 
@@ -31,15 +32,53 @@ func subfunction(logger DeepStackLogger) error {
 	return logger.NewError("an error occurred", "key1", "value1")
 }
 
-func TestStuff(t *testing.T) {
-	backendMock := NewLoggingBackendMock(t)
-	logger := DeepStackLoggerImpl{
-		logger:                              backendMock,
-		enableWarningsForNonDeepStackErrors: false,
+func GetSampleLogRecord() *LogRecord {
+	return &LogRecord{
+		level:      "debug",
+		msg:        "some message",
+		attributes: map[string]any{"key1": "value1", "key2": "value2"},
 	}
+}
 
-	backendMock.EXPECT().ShouldLogBeSkipped("debug").Return(true)
-	logger.log("debug", "test message", "key1", "value1", "key2", "value2")
+func newLogger(tb testing.TB, warn bool) (*DeepStackLoggerImpl, *LoggingBackendMock) {
+	tb.Helper()
+	m := NewLoggingBackendMock(tb)
+	return &DeepStackLoggerImpl{logger: m, enableWarningsForNonDeepStackErrors: warn}, m
+}
 
-	backendMock.AssertExpectations(t)
+func TestLogSkip(t *testing.T) {
+	l, m := newLogger(t, false)
+	m.EXPECT().ShouldLogBeSkipped("debug").Return(true)
+	l.log("debug", "msg")
+	m.AssertExpectations(t)
+}
+
+func TestLogDeepStackError(t *testing.T) {
+	l, m := newLogger(t, false)
+	err := &DeepStackError{Message: "m", StackTrace: "trace", Context: map[string]any{"k": "v"}}
+	m.EXPECT().ShouldLogBeSkipped("error").Return(false)
+	m.EXPECT().CreateLogRecord("error", "msg").Return(GetSampleLogRecord())
+	m.EXPECT().HandleRecord(mock.Anything)
+	m.EXPECT().Println("trace")
+	l.log("error", "msg", ErrorField, err)
+	m.AssertExpectations(t)
+}
+
+func TestLogNormalErrorNoWarning(t *testing.T) {
+	l, m := newLogger(t, false)
+	m.EXPECT().ShouldLogBeSkipped("error").Return(false)
+	m.EXPECT().CreateLogRecord("error", "msg").Return(GetSampleLogRecord())
+	m.EXPECT().HandleRecord(mock.Anything)
+	l.log("error", "msg", ErrorField, errors.New("e"))
+	m.AssertExpectations(t)
+}
+
+func TestLogNormalErrorWithWarning(t *testing.T) {
+	l, m := newLogger(t, true)
+	m.EXPECT().ShouldLogBeSkipped("error").Return(false)
+	m.EXPECT().CreateLogRecord("error", "msg").Return(GetSampleLogRecord())
+	m.EXPECT().LogInvalidErrorTypeWarning()
+	m.EXPECT().HandleRecord(mock.Anything)
+	l.log("error", "msg", ErrorField, errors.New("e"))
+	m.AssertExpectations(t)
 }
