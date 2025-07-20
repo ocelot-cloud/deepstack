@@ -147,7 +147,7 @@ func (m *DeepStackLoggerImpl) log(level string, msg string, keyValuePairs ...any
 	for i := 0; i+1 < len(keyValuePairs); i += 2 {
 		key, ok := keyValuePairs[i].(string)
 		if !ok {
-			m.logger.LogWarning("invalid key type in log message, must always be string", "type", reflect.TypeOf(key).String())
+			m.logger.LogWarning("invalid key type in log message, must always be string", "type", reflect.TypeOf(keyValuePairs[i]).String())
 			continue // TODO can be removed without causing tests to fail, fix this
 		}
 
