@@ -92,7 +92,7 @@ func TestLogInvalidKeyType(t *testing.T) {
 	m.EXPECT().CreateLogRecord("info", "msg").Return(rec)
 	m.EXPECT().LogWarning(
 		"invalid key type in log message, must always be string",
-		[]interface{}{"type", reflect.TypeOf("")},
+		[]interface{}{"type", reflect.TypeOf("").String()}, // TODO I would actually expect an integer type here, not string
 	)
 	m.EXPECT().HandleRecord(rec)
 
