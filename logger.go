@@ -43,7 +43,6 @@ func NewDeepStackLogger(logLevel string, showCallerFile, enableWarningsForNonDee
 	}
 
 	fileHandler := slog.NewJSONHandler(logFile, opts)
-	// TODO remove tint library by sth self-written
 	consoleHandler := newConsoleHandler(os.Stdout, showCallerFile, slogLogLevel, dropStackTrace)
 	/*tint.NewHandler(os.Stdout, &tint.Options{
 		AddSource: showCallerFile,
@@ -60,7 +59,7 @@ func NewDeepStackLogger(logLevel string, showCallerFile, enableWarningsForNonDee
 	}
 }
 
-type consoleHandler struct {
+type coloredConsoleHandler struct {
 	slog.Handler
 	w io.Writer
 }
@@ -72,7 +71,7 @@ func newConsoleHandler(w io.Writer, addSource bool, lvl slog.Level,
 		Level:       lvl,
 		ReplaceAttr: rep,
 	})
-	return &consoleHandler{Handler: base, w: w}
+	return &coloredConsoleHandler{Handler: base, w: w}
 }
 
 var lvlColor = map[slog.Level]string{
@@ -82,7 +81,7 @@ var lvlColor = map[slog.Level]string{
 	slog.LevelError: "\x1b[31m", // red
 }
 
-func (h *consoleHandler) Handle(ctx context.Context, r slog.Record) error {
+func (h *coloredConsoleHandler) Handle(ctx context.Context, r slog.Record) error {
 	if c := lvlColor[r.Level]; c != "" {
 		_, _ = io.WriteString(h.w, c)
 		err := h.Handler.Handle(ctx, r)
