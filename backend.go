@@ -29,7 +29,7 @@ func (s *LoggingBackendImpl) ShouldLogBeSkipped(level string) bool {
 
 func (s *LoggingBackendImpl) HandleRecord(logRecord *LogRecord) {
 	var pcs [1]uintptr
-	runtime.Callers(3, pcs[:])
+	runtime.Callers(4, pcs[:])
 	slogLevel := convertToSlogLevel(logRecord.level)
 	slogRecord := slog.NewRecord(time.Now(), slogLevel, logRecord.msg, pcs[0])
 

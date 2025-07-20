@@ -20,7 +20,7 @@ type DeepStackLogger interface {
 }
 
 // idea for later: add the software version to the log so that "source" attribute deterministally references its origin
-func NewDeepStackLogger(logLevel string, showCaller bool) DeepStackLogger {
+func NewDeepStackLogger(logLevel string, showCallerFile, enableWarningsForNonDeepStackErrors bool) DeepStackLogger {
 	logDir := "data/logs"
 	if err := os.MkdirAll(logDir, 0700); err != nil {
 		panic(fmt.Sprintf("Failed to create logs directory: %v", err))
@@ -37,20 +37,24 @@ func NewDeepStackLogger(logLevel string, showCaller bool) DeepStackLogger {
 	slogLogLevel := convertToSlogLevel(logLevel)
 
 	opts := &slog.HandlerOptions{
-		AddSource:   showCaller,
+		AddSource:   showCallerFile,
 		Level:       slogLogLevel,
 		ReplaceAttr: replaceSource,
 	}
 
 	fileHandler := slog.NewJSONHandler(logFile, opts)
 	consoleHandler := tint.NewHandler(os.Stdout, &tint.Options{
-		AddSource:   showCaller,
-		Level:       slogLogLevel,
+		AddSource: showCallerFile,
+		Level:     slogLogLevel,
+		// drop stack trace in the console output log line as we print it prettily below
 		ReplaceAttr: dropStackTrace,
 	})
 
 	logger := slog.New(multiHandler{fileHandler, consoleHandler})
-	return &DeepStackLoggerImpl{&LoggingBackendImpl{slog: logger}}
+	return &DeepStackLoggerImpl{
+		logger:                              &LoggingBackendImpl{slog: logger},
+		enableWarningsForNonDeepStackErrors: enableWarningsForNonDeepStackErrors,
+	}
 }
 
 func dropStackTrace(groups []string, a slog.Attr) slog.Attr {
@@ -106,7 +110,8 @@ func (h multiHandler) WithGroup(name string) slog.Handler {
 }
 
 type DeepStackLoggerImpl struct {
-	logger LoggingBackend
+	logger                              LoggingBackend
+	enableWarningsForNonDeepStackErrors bool
 }
 
 // TODO this should be unit tested using mockery;
@@ -126,6 +131,7 @@ func (m *DeepStackLoggerImpl) log(level string, msg string, kv ...any) {
 		}
 
 		if key == ErrorField {
+			// TODO when unit tests are written, extract that to a separate function like "m.handleErrorField()"
 			detailedError, ok := kv[i+1].(*DeepStackError)
 			if ok {
 				for k, v := range detailedError.Context {
@@ -133,10 +139,10 @@ func (m *DeepStackLoggerImpl) log(level string, msg string, kv ...any) {
 				}
 				rec.AddAttrs("stack_trace", detailedError.StackTrace)
 				stackTrace = detailedError.StackTrace
-				m.log(level, msg)
 			} else {
-				// TODO make this optional, maybe disabled by default?
-				m.Warn("invalid error type in log message, must be *DeepStackError")
+				if m.enableWarningsForNonDeepStackErrors {
+					m.Warn("invalid error type in log message, must be *DeepStackError")
+				}
 				rec.AddAttrs(key, kv[i+1])
 			}
 		} else {
