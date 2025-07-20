@@ -5,16 +5,16 @@ import (
 )
 
 type DeepStackError struct {
-	ErrorMessage string
-	ErrorStack   string
-	Context      map[string]any
+	Message    string
+	StackTrace string
+	Context    map[string]any
 }
 
 func (d *DeepStackError) Error() string {
-	var result = d.ErrorMessage
+	var result = d.Message
 	for k, v := range d.Context {
 		result += fmt.Sprintf(" %s=%v", k, v)
 	}
-	result += "\nstack trace:\n" + d.ErrorStack
+	result += "\nstack trace:\n" + d.StackTrace
 	return result
 }

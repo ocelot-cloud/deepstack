@@ -131,8 +131,8 @@ func (m *DeepStackLoggerImpl) log(level string, msg string, kv ...any) {
 				for k, v := range detailedError.Context {
 					rec.AddAttrs(k, v)
 				}
-				rec.AddAttrs("stack_trace", detailedError.ErrorStack)
-				stackTrace = detailedError.ErrorStack
+				rec.AddAttrs("stack_trace", detailedError.StackTrace)
+				stackTrace = detailedError.StackTrace
 				m.log(level, msg)
 			} else {
 				// TODO make this optional, maybe disabled by default?
@@ -162,8 +162,8 @@ func (m *DeepStackLoggerImpl) NewError(msg string, kv ...any) error {
 	}
 
 	return &DeepStackError{
-		ErrorMessage: msg,
-		ErrorStack:   printStackTrace(),
-		Context:      contextMap,
+		Message:    msg,
+		StackTrace: printStackTrace(),
+		Context:    contextMap,
 	}
 }
