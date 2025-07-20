@@ -50,7 +50,7 @@ func NewDeepStackLogger(logLevel string, showCaller bool) DeepStackLogger {
 	})
 
 	logger := slog.New(multiHandler{fileHandler, consoleHandler})
-	return &DeepStackLoggerImpl{logger, &LoggingBackendImpl{slog: logger}}
+	return &DeepStackLoggerImpl{&LoggingBackendImpl{slog: logger}}
 }
 
 func dropStackTrace(groups []string, a slog.Attr) slog.Attr {
@@ -106,7 +106,6 @@ func (h multiHandler) WithGroup(name string) slog.Handler {
 }
 
 type DeepStackLoggerImpl struct {
-	l      *slog.Logger // TODO to be removed, use LoggingBackend instead
 	logger LoggingBackend
 }
 
@@ -136,6 +135,7 @@ func (m *DeepStackLoggerImpl) log(level string, msg string, kv ...any) {
 				stackTrace = detailedError.ErrorStack
 				m.log(level, msg)
 			} else {
+				// TODO make this optional, maybe disabled by default?
 				m.Warn("invalid error type in log message, must be *DeepStackError")
 				rec.AddAttrs(key, kv[i+1])
 			}
