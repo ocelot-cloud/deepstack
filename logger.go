@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 )
 
@@ -136,7 +137,6 @@ type DeepStackLoggerImpl struct {
 	enableWarningsForNonDeepStackErrors bool
 }
 
-// TODO this should be unit tested using mockery;
 func (m *DeepStackLoggerImpl) log(level string, msg string, kv ...any) {
 	if m.logger.ShouldLogBeSkipped(level) {
 		return
@@ -147,8 +147,8 @@ func (m *DeepStackLoggerImpl) log(level string, msg string, kv ...any) {
 	for i := 0; i+1 < len(kv); i += 2 {
 		key, ok := kv[i].(string)
 		if !ok {
-			m.logger.LogWarning("invalid key type in log message, must always be string", "key", key)
-			continue
+			m.logger.LogWarning("invalid key type in log message, must always be string", "type", reflect.TypeOf(key))
+			continue // TODO can be removed without causing tests to fai, fix this
 		}
 
 		if key == ErrorField {

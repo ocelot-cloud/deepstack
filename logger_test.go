@@ -3,6 +3,7 @@ package deepstack
 import (
 	"errors"
 	"github.com/stretchr/testify/mock"
+	"reflect"
 	"testing"
 )
 
@@ -80,5 +81,21 @@ func TestLogNormalErrorWithWarning(t *testing.T) {
 	m.EXPECT().LogWarning("invalid error type in log message, must be *DeepStackError")
 	m.EXPECT().HandleRecord(mock.Anything)
 	l.log("error", "msg", ErrorField, errors.New("e"))
+	m.AssertExpectations(t)
+}
+
+func TestLogInvalidKeyType(t *testing.T) {
+	l, m := newLogger(t, false)
+	rec := GetSampleLogRecord()
+
+	m.EXPECT().ShouldLogBeSkipped("info").Return(false)
+	m.EXPECT().CreateLogRecord("info", "msg").Return(rec)
+	m.EXPECT().LogWarning(
+		"invalid key type in log message, must always be string",
+		[]interface{}{"type", reflect.TypeOf("")},
+	)
+	m.EXPECT().HandleRecord(rec)
+
+	l.log("info", "msg", 123, "value1")
 	m.AssertExpectations(t)
 }
