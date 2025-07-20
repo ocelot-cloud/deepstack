@@ -3,8 +3,8 @@ package deepstack
 import (
 	"context"
 	"fmt"
-	"github.com/lmittmann/tint"
 	"gopkg.in/natefinch/lumberjack.v2"
+	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -44,18 +44,52 @@ func NewDeepStackLogger(logLevel string, showCallerFile, enableWarningsForNonDee
 
 	fileHandler := slog.NewJSONHandler(logFile, opts)
 	// TODO remove tint library by sth self-written
-	consoleHandler := tint.NewHandler(os.Stdout, &tint.Options{
+	consoleHandler := newConsoleHandler(os.Stdout, showCallerFile, slogLogLevel, dropStackTrace)
+	/*tint.NewHandler(os.Stdout, &tint.Options{
 		AddSource: showCallerFile,
 		Level:     slogLogLevel,
 		// drop stack trace in the console output log line as we print it prettily below
 		ReplaceAttr: dropStackTrace,
 	})
+	*/
 
 	logger := slog.New(multiHandler{fileHandler, consoleHandler})
 	return &DeepStackLoggerImpl{
 		logger:                              &LoggingBackendImpl{slog: logger},
 		enableWarningsForNonDeepStackErrors: enableWarningsForNonDeepStackErrors,
 	}
+}
+
+type consoleHandler struct {
+	slog.Handler
+	w io.Writer
+}
+
+func newConsoleHandler(w io.Writer, addSource bool, lvl slog.Level,
+	rep func(groups []string, a slog.Attr) slog.Attr) slog.Handler {
+	base := slog.NewTextHandler(w, &slog.HandlerOptions{
+		AddSource:   addSource,
+		Level:       lvl,
+		ReplaceAttr: rep,
+	})
+	return &consoleHandler{Handler: base, w: w}
+}
+
+var lvlColor = map[slog.Level]string{
+	slog.LevelDebug: "\x1b[36m", // cyan
+	slog.LevelInfo:  "\x1b[32m", // green
+	slog.LevelWarn:  "\x1b[33m", // yellow
+	slog.LevelError: "\x1b[31m", // red
+}
+
+func (h *consoleHandler) Handle(ctx context.Context, r slog.Record) error {
+	if c := lvlColor[r.Level]; c != "" {
+		_, _ = io.WriteString(h.w, c)
+		err := h.Handler.Handle(ctx, r)
+		_, _ = io.WriteString(h.w, "\x1b[0m")
+		return err
+	}
+	return h.Handler.Handle(ctx, r)
 }
 
 func dropStackTrace(groups []string, a slog.Attr) slog.Attr {
