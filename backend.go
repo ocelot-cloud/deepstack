@@ -30,7 +30,7 @@ func (s *LoggingBackendImpl) ShouldLogBeSkipped(level string) bool {
 }
 
 func (s *LoggingBackendImpl) HandleRecord(logRecord *LogRecord) {
-	s.logRecord(logRecord, 4)
+	s.logRecord(logRecord, 5)
 }
 
 func (s *LoggingBackendImpl) logRecord(logRecord *LogRecord, skipFunctionTreeLevels int) {

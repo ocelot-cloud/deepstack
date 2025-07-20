@@ -44,13 +44,21 @@ func main() {
 }
 
 func doAResourceAccessOperation() error {
-	return deepstack.NewError("unauthorized access", "userID", 12345)
+	return deepstack.NewError("unauthorized access", "user_id", 12345)
 }
-
-// TODO add sample output
 ```
 
-// TODO add logger code from shared module
+Output:
+
+```text
+time=2025-07-21T00:15:00.000+02:00 level=ERROR source=main.go:29 msg="user logged in" name=john role=admin
+...
+time=2025-07-21T00:15:01.000+02:00 level=ERROR source=logger_test.go:29 msg="testing detailed error" user_id=12345
+deepstack.subfunction
+    /some/path/main.go:33
+deepstack.TestLoggingWithStackTrace
+    /some/path/main.go:29
+```
 
 ### Contributing
 
