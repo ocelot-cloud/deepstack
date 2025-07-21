@@ -1,11 +1,8 @@
-module deepstack
+module github.com/ocelot-cloud/deepstack
 
 go 1.24.4
 
-require (
-	github.com/lmittmann/tint v1.1.2
-	gopkg.in/natefinch/lumberjack.v2 v2.2.1
-)
+require gopkg.in/natefinch/lumberjack.v2 v2.2.1
 
 require github.com/stretchr/objx v0.5.2 // indirect
 
