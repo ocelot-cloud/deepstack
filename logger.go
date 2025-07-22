@@ -10,7 +10,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"runtime"
-	"time"
 )
 
 type DeepStackLogger interface {
@@ -224,7 +223,7 @@ func (h leanConsoleHandler) Handle(_ context.Context, r slog.Record) error {
 	})
 
 	c, reset := lvlColor[r.Level], "\x1b[0m"
-	fmt.Fprintf(h.w, "%s%s %s %s %q", c, r.Time.Format(time.RFC3339Nano), r.Level, fileLine, r.Message)
+	fmt.Fprintf(h.w, "%s%s %s %s %q", c, r.Time.Format("2006-01-02 15:04:05.000"), r.Level, fileLine, r.Message)
 	for _, a := range attrs {
 		fmt.Fprintf(h.w, " %s=%v", a.Key, a.Value)
 	}
