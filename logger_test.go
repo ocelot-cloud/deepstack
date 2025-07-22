@@ -2,6 +2,7 @@ package deepstack
 
 import (
 	"errors"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"reflect"
 	"testing"
@@ -97,5 +98,42 @@ func TestLogInvalidKeyType(t *testing.T) {
 	m.EXPECT().HandleRecord(rec)
 
 	l.log("info", "msg", 123, "value1", "key2", "value2")
+	m.AssertExpectations(t)
+}
+
+func TestAddContextNormalError(t *testing.T) {
+	l, m := newLogger(t, false)
+	inputError := errors.New("some error")
+	m.EXPECT().LogWarning("invalid error type in log message, must be *DeepStackError")
+	outputError := l.AddContext(inputError, "key1", "value1", "key2", "value2")
+
+	err, ok := outputError.(*DeepStackError)
+	assert.True(t, ok)
+	assert.Equal(t, "some error", err.Message)
+	assert.Equal(t, 2, len(err.Context))
+	assert.Equal(t, "value1", err.Context["key1"])
+	assert.Equal(t, "value2", err.Context["key2"])
+	assert.NotEqual(t, "", err.StackTrace)
+
+	m.AssertExpectations(t)
+}
+
+func TestAddContextDeepStackError(t *testing.T) {
+	l, m := newLogger(t, false)
+	inputError := &DeepStackError{
+		Message:    "some error",
+		StackTrace: "some stack trace",
+		Context:    map[string]any{"key1": "value1"},
+	}
+	outputError := l.AddContext(inputError, "key2", "value2")
+
+	err, ok := outputError.(*DeepStackError)
+	assert.True(t, ok)
+	assert.Equal(t, "some error", err.Message)
+	assert.Equal(t, 2, len(err.Context))
+	assert.Equal(t, "value1", err.Context["key1"])
+	assert.Equal(t, "value2", err.Context["key2"])
+	assert.Equal(t, "some stack trace", err.StackTrace)
+
 	m.AssertExpectations(t)
 }

@@ -175,12 +175,33 @@ func (m *DeepStackLoggerImpl) NewError(msg string, kv ...any) error {
 	}
 }
 
-func (m *DeepStackLoggerImpl) AddContext(err error) error {
-	/* TODO implement and unit test
-	if this is a DeepStackError, add the context to it, and return the error
-	else log a warning that this is not a DeepStackError, convert it to a DeepStackError, add context and return it
-	*/
-	return nil
+func (m *DeepStackLoggerImpl) AddContext(err error, context ...any) error {
+	workError, ok := err.(*DeepStackError)
+	if ok {
+		m.addToContextField(context, workError)
+		return workError
+	} else {
+		// TODO should only be executed when m.enableWarningsForNonDeepStackErrors == true
+		m.logger.LogWarning("invalid error type in log message, must be *DeepStackError")
+		deepStackError := &DeepStackError{
+			Message:    err.Error(),
+			StackTrace: printStackTrace(),
+			Context:    map[string]any{},
+		}
+		m.addToContextField(context, deepStackError)
+		return deepStackError
+	}
+}
+
+// TODO duplication?
+func (m *DeepStackLoggerImpl) addToContextField(context []any, workError *DeepStackError) {
+	for i := 0; i+1 < len(context); i += 2 {
+		if key, ok := context[i].(string); ok {
+			workError.Context[key] = context[i+1]
+		} else {
+			m.logger.LogWarning("invalid key type in log message, must always be string", "type", reflect.TypeOf(context[i]).String())
+		}
+	}
 }
 
 type leanConsoleHandler struct{ w io.Writer }
