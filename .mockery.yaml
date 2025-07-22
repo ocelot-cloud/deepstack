@@ -1,5 +1,5 @@
 packages:
-  deepstack:
+  github.com/ocelot-cloud/deepstack:
     interfaces:
       LoggingBackend:
         config:
