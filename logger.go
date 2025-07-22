@@ -199,3 +199,13 @@ func (m *DeepStackLoggerImpl) NewError(msg string, kv ...any) error {
 		Context:    contextMap,
 	}
 }
+
+// TODO in the logs in the console, remove the prefixes: time=, level=, source=, msg= (other keys should be displayed in log)
+
+func (m *DeepStackLoggerImpl) AddContext(err error) error {
+	/* TODO implement and unit test
+	if this is a DeepStackError, add the context to it, and return the error
+	else log a warning that this is not a DeepStackError, convert it to a DeepStackError, add context and return it
+	*/
+	return nil
+}
