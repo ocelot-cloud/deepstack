@@ -9,7 +9,8 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"strings"
+	"runtime"
+	"time"
 )
 
 type DeepStackLogger interface {
@@ -38,18 +39,12 @@ func NewDeepStackLogger(logLevel string, enableWarningsForNonDeepStackErrors boo
 	slogLogLevel := convertToSlogLevel(logLevel)
 
 	opts := &slog.HandlerOptions{
-		AddSource:   true,
-		Level:       slogLogLevel,
-		ReplaceAttr: replaceSource,
+		AddSource: true,
+		Level:     slogLogLevel,
 	}
 
 	fileHandler := slog.NewJSONHandler(logFile, opts)
-	base := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		AddSource:   true,
-		Level:       slogLogLevel,
-		ReplaceAttr: dropStackTrace,
-	})
-	consoleHandler := &coloredConsoleHandler{Handler: base, w: os.Stdout}
+	consoleHandler := leanConsoleHandler{w: os.Stdout}
 
 	logger := slog.New(multiHandler{fileHandler, consoleHandler})
 	return &DeepStackLoggerImpl{
@@ -78,26 +73,6 @@ func (h *coloredConsoleHandler) Handle(ctx context.Context, r slog.Record) error
 		return err
 	}
 	return h.Handler.Handle(ctx, r)
-}
-
-func dropStackTrace(groups []string, a slog.Attr) slog.Attr {
-	if a.Key == "stack_trace" {
-		return slog.Attr{}
-	}
-	return replaceSource(groups, a)
-}
-
-func replaceSource(groups []string, a slog.Attr) slog.Attr {
-	if a.Key == slog.SourceKey {
-		src := a.Value.Any().(*slog.Source)
-		if rel, ok := strings.CutPrefix(src.File, workDirectory+string(os.PathSeparator)); ok {
-			src.File = rel
-		} else {
-			src.File = filepath.Base(src.File)
-		}
-		return slog.Any(a.Key, src)
-	}
-	return a
 }
 
 type multiHandler []slog.Handler
@@ -200,8 +175,6 @@ func (m *DeepStackLoggerImpl) NewError(msg string, kv ...any) error {
 	}
 }
 
-// TODO in the logs in the console, remove the prefixes: time=, level=, source=, msg= (other keys should be displayed in log)
-
 func (m *DeepStackLoggerImpl) AddContext(err error) error {
 	/* TODO implement and unit test
 	if this is a DeepStackError, add the context to it, and return the error
@@ -209,3 +182,34 @@ func (m *DeepStackLoggerImpl) AddContext(err error) error {
 	*/
 	return nil
 }
+
+type leanConsoleHandler struct{ w io.Writer }
+
+func (h leanConsoleHandler) Enabled(_ context.Context, _ slog.Level) bool { return true }
+
+func (h leanConsoleHandler) Handle(_ context.Context, r slog.Record) error {
+	frame, _ := runtime.CallersFrames([]uintptr{r.PC}).Next()
+	fileLine := fmt.Sprintf("%s:%d", filepath.Base(frame.File), frame.Line)
+	var attrs []slog.Attr
+	r.Attrs(func(a slog.Attr) bool {
+		if a.Key == slog.SourceKey {
+			return true
+		}
+		if a.Key == "stack_trace" {
+			return true
+		}
+		attrs = append(attrs, a)
+		return true
+	})
+
+	c, reset := lvlColor[r.Level], "\x1b[0m"
+	fmt.Fprintf(h.w, "%s%s %s %s %q", c, r.Time.Format(time.RFC3339Nano), r.Level, fileLine, r.Message)
+	for _, a := range attrs {
+		fmt.Fprintf(h.w, " %s=%v", a.Key, a.Value)
+	}
+	fmt.Fprintln(h.w, reset)
+	return nil
+}
+
+func (h leanConsoleHandler) WithAttrs([]slog.Attr) slog.Handler { return h }
+func (h leanConsoleHandler) WithGroup(string) slog.Handler      { return h }
