@@ -102,9 +102,13 @@ func TestLogInvalidKeyType(t *testing.T) {
 }
 
 func TestAddContextNormalError(t *testing.T) {
-	l, m := newLogger(t, false)
+	logger, backendMock := newLogger(t, true)
 	inputError := errors.New("some error")
-	m.EXPECT().LogWarning("invalid error type in log message, must be *DeepStackError")
+	backendMock.EXPECT().LogWarning("invalid error type in log message, must be *DeepStackError")
+	funcName(t, logger, inputError, backendMock)
+}
+
+func funcName(t *testing.T, l *DeepStackLoggerImpl, inputError error, m *LoggingBackendMock) {
 	outputError := l.AddContext(inputError, "key1", "value1", "key2", "value2")
 
 	err, ok := outputError.(*DeepStackError)
@@ -118,14 +122,20 @@ func TestAddContextNormalError(t *testing.T) {
 	m.AssertExpectations(t)
 }
 
+func TestAddContextNormalError_DisabledWarnings(t *testing.T) {
+	logger, BackendMock := newLogger(t, false)
+	inputError := errors.New("some error")
+	funcName(t, logger, inputError, BackendMock)
+}
+
 func TestAddContextDeepStackError(t *testing.T) {
-	l, m := newLogger(t, false)
+	logger, backendMock := newLogger(t, false)
 	inputError := &DeepStackError{
 		Message:    "some error",
 		StackTrace: "some stack trace",
 		Context:    map[string]any{"key1": "value1"},
 	}
-	outputError := l.AddContext(inputError, "key2", "value2")
+	outputError := logger.AddContext(inputError, "key2", "value2")
 
 	err, ok := outputError.(*DeepStackError)
 	assert.True(t, ok)
@@ -135,5 +145,5 @@ func TestAddContextDeepStackError(t *testing.T) {
 	assert.Equal(t, "value2", err.Context["key2"])
 	assert.Equal(t, "some stack trace", err.StackTrace)
 
-	m.AssertExpectations(t)
+	backendMock.AssertExpectations(t)
 }

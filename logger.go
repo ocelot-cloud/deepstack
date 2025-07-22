@@ -181,8 +181,9 @@ func (m *DeepStackLoggerImpl) AddContext(err error, context ...any) error {
 		m.addToContextField(context, workError)
 		return workError
 	} else {
-		// TODO should only be executed when m.enableWarningsForNonDeepStackErrors == true
-		m.logger.LogWarning("invalid error type in log message, must be *DeepStackError")
+		if m.enableWarningsForNonDeepStackErrors {
+			m.logger.LogWarning("invalid error type in log message, must be *DeepStackError")
+		}
 		deepStackError := &DeepStackError{
 			Message:    err.Error(),
 			StackTrace: printStackTrace(),
@@ -193,7 +194,6 @@ func (m *DeepStackLoggerImpl) AddContext(err error, context ...any) error {
 	}
 }
 
-// TODO duplication?
 func (m *DeepStackLoggerImpl) addToContextField(context []any, workError *DeepStackError) {
 	for i := 0; i+1 < len(context); i += 2 {
 		if key, ok := context[i].(string); ok {
