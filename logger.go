@@ -52,26 +52,11 @@ func NewDeepStackLogger(logLevel string, enableWarningsForNonDeepStackErrors boo
 	}
 }
 
-type coloredConsoleHandler struct {
-	slog.Handler
-	w io.Writer
-}
-
 var lvlColor = map[slog.Level]string{
 	slog.LevelDebug: "\x1b[36m", // cyan
 	slog.LevelInfo:  "\x1b[32m", // green
 	slog.LevelWarn:  "\x1b[33m", // yellow
 	slog.LevelError: "\x1b[31m", // red
-}
-
-func (h *coloredConsoleHandler) Handle(ctx context.Context, r slog.Record) error {
-	if c := lvlColor[r.Level]; c != "" {
-		_, _ = io.WriteString(h.w, c)
-		err := h.Handler.Handle(ctx, r)
-		_, _ = io.WriteString(h.w, "\x1b[0m")
-		return err
-	}
-	return h.Handler.Handle(ctx, r)
 }
 
 type multiHandler []slog.Handler
