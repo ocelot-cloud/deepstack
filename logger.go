@@ -218,3 +218,5 @@ func (h leanConsoleHandler) Handle(_ context.Context, r slog.Record) error {
 
 func (h leanConsoleHandler) WithAttrs([]slog.Attr) slog.Handler { return h }
 func (h leanConsoleHandler) WithGroup(string) slog.Handler      { return h }
+
+// TODO feature: a function like AddContext("unique_go_routine_id") that takes values from the context.Context and adds it as field to the structured log. Not sure if that should be printed to console? but definitely should be printed to the log file; if the value is empty, I should maybe do a warning log, as this is a hint that I forgot to set the value in the context.Context somewhere in the code (maybe add a flag in the NewDeepStackLogger to dis-/enable this feature?)
