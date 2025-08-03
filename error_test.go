@@ -2,7 +2,6 @@ package deepstack
 
 import (
 	"github.com/stretchr/testify/assert"
-	"strings"
 	"testing"
 )
 
@@ -17,6 +16,5 @@ func TestErrorToString(t *testing.T) {
 	assert.Equal(t, "value1", detailedTestError.Context["key1"])
 	assert.NotEqual(t, "", detailedTestError.StackTrace)
 
-	errorString := testError.Error()
-	assert.True(t, strings.HasPrefix(errorString, "an error occurred key1=value1\nstack trace:\n"))
+	assert.Equal(t, "an error occurred", testError.Error())
 }

@@ -20,6 +20,7 @@ url_path=/api/settings/maintenance/read
   2025-08-02 11:10:39.210 DEBUG handlers.go:19 "app list handler called"
   is_request_addressed_to_an_app=false
 
+* when logging an error which is not a deepstack error, it should be logged -> I think that is already the case, but better re-check
 * add deepstack log in all "shared" module errors
 * deepstack: make the "signal: killed" message green
 * close other todos in code
