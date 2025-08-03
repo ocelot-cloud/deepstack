@@ -7,10 +7,10 @@ DeepStack is a structured logging library for the Ocelot Ecosystem based on the 
 ### Error Design
 
 * **Log Or Return Principle**: To avoid duplication, either log or return an error, but not both. Therefore, the workflow should be to create DeepStack errors in a low-level function and then immediately return them. Then, they should be passed up to a higher-level function, where they are handled and logged.
-* A **stack trace is automatically included in the DeepStack error**. This makes it possible to create a single log in the high-level error-handling function, which displays the full stack trace. This includes the root cause of the error in the low-level function. The `NewError()` function is provided for creating errors.
+* A **stack trace is automatically included in the DeepStack error**. This makes it possible to create a single log in the high-level error-handling function, which displays the full stack trace. This includes the root cause of the error in the low-level function. The `NewError()` function is provided for creating such errors.
 * **DeepStack error implements Go `error` interface**, allowing it to be used seamlessly with Go's error handling mechanisms and reducing its coupling with the code in which it is used.
-* **DeepStackError Structure**: Other logging libraries often encode context and stack trace information in a single string to create errors. DeepStack errors, on the other hand, are more complex data structures that carry additional fields to handle the extra complexity.
-* **Adding Error Context**: DeepStack errors have an additional context field that can store key-value pairs. These pairs can be added to extend the context during DeepStack error creation or by intermediate functions passing up the DeepStack error. Since these operations are performed on the error object itself, the process is lightweight and avoids string concatenation or complex error wrapping.
+* **DeepStackError Structure**: Other logging libraries often encode context and stack trace information in a single error string, adding encoding complexity. In contrast, DeepStack errors are rich data structures containing extra fields for context and stack traces, thus avoiding this complexity.
+* **Adding Error Context**: DeepStack error data structures have a context field that can store key-value pairs. These pairs can be added to extend the context during DeepStack error creation or by intermediate functions passing up the DeepStack error. As these operations are performed directly on the error data structure, the process is much lighter than the costly encoding operations performed by other logging libraries.
 
 ```go
 type DeepStackError struct {
@@ -22,10 +22,10 @@ type DeepStackError struct {
 
 ### Logging Design
 
-* **Structured Logging** is the general use case of this library that allows for easy filtering and searching of logs.
+* **Structured Logging** is the general use case of the DeepStack library that allows for easy filtering and searching of logs.
 * **Error Logging** is a special case in which the DeepStack logger reflects on the error type. If it is a DeepStack error, the library prints all of this information to the console and the log file in a readable manner. This can be extended later to send logs to a server.
 * **Centralization** by pushing logs and metrics into a database is planned for the future, allowing for a unified view of all logs across the Ocelot ecosystem.
-* A **Retention Policy** for log files is automatically included.
+* **Log persistence** and a **retention policy** for log files are already included.
 
 ### Logging Example
 

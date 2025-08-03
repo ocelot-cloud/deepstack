@@ -8,6 +8,7 @@ import (
 	"testing"
 )
 
+// TODO I dont like that the output of this test is to be checked by humans. should be automated. Maybe add an option to return the output as a string?
 func TestLoggingVisually(t *testing.T) {
 	logger := NewDeepStackLogger("debug", false)
 	logger.Debug("This is a debug message")
