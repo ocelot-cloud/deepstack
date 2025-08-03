@@ -1,5 +1,6 @@
 TODO
 
+* the usage of slog feels a little hacky. Maybe I better replace it with custom logic
 * in console logs, there is at the moment just the file name, but I want also the relative path (duplications make the IDE not recognize the file when clicking on it)
 * odd logs sometimes in cloud:
 
