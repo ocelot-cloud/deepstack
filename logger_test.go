@@ -1,6 +1,7 @@
 package deepstack
 
 import (
+	"bytes"
 	"errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -19,6 +20,14 @@ func TestLoggingVisually(t *testing.T) {
 	logger.Info("This is an info message", "key1", "value1", "key2", "value 2")
 	logger.Error("This is an info message", ErrorField, "some-error")
 	logger.Error("This is an info message", ErrorField, errors.New("some-error"))
+}
+
+// TODO problem: we need to also insert a date producer
+func TestConsoleOutput(t *testing.T) {
+	consoleSpy := &bytes.Buffer{}
+	logger := NewDeepStackLoggerWithWriter("debug", false, consoleSpy)
+	logger.Info("msg", "k", "v")
+	// TODO assert.Equal(t, "todo", consoleSpy.String())
 }
 
 func TestLoggingVisuallyOfNormalError(t *testing.T) {

@@ -20,35 +20,25 @@ type DeepStackLogger interface {
 	NewError(msg string, kv ...any) error
 }
 
-func NewDeepStackLogger(logLevel string, enableWarningsForNonDeepStackErrors bool) DeepStackLogger {
+func NewDeepStackLoggerWithWriter(logLevel string, enableWarningsForNonDeepStackErrors bool, dst io.Writer) DeepStackLogger {
+	if dst == nil {
+		dst = os.Stdout
+	}
 	logDir := "data/logs"
-	if err := os.MkdirAll(logDir, 0700); err != nil {
-		panic(fmt.Sprintf("Failed to create logs directory: %v", err))
-	}
+	_ = os.MkdirAll(logDir, 0700)
 
-	logFile := &lumberjack.Logger{
-		Filename:   logDir + "/app.log",
-		MaxSize:    100,
-		MaxBackups: 0,
-		MaxAge:     30,
-		Compress:   true,
-	}
-
-	slogLogLevel := convertToSlogLevel(logLevel)
-
-	opts := &slog.HandlerOptions{
-		AddSource: true,
-		Level:     slogLogLevel,
-	}
+	logFile := &lumberjack.Logger{Filename: logDir + "/app.log", MaxSize: 100, MaxAge: 30, Compress: true}
+	opts := &slog.HandlerOptions{AddSource: true, Level: convertToSlogLevel(logLevel)}
 
 	fileHandler := slog.NewJSONHandler(logFile, opts)
-	consoleHandler := leanConsoleHandler{w: os.Stdout}
+	consoleHandler := stringHandler{w: dst, opts: opts}
 
 	logger := slog.New(multiHandler{fileHandler, consoleHandler})
-	return &DeepStackLoggerImpl{
-		logger:                              &LoggingBackendImpl{slog: logger},
-		enableWarningsForNonDeepStackErrors: enableWarningsForNonDeepStackErrors,
-	}
+	return &DeepStackLoggerImpl{logger: &LoggingBackendImpl{slog: logger}, enableWarningsForNonDeepStackErrors: enableWarningsForNonDeepStackErrors}
+}
+
+func NewDeepStackLogger(logLevel string, enableWarningsForNonDeepStackErrors bool) DeepStackLogger {
+	return NewDeepStackLoggerWithWriter(logLevel, enableWarningsForNonDeepStackErrors, os.Stdout)
 }
 
 var lvlColor = map[slog.Level]string{
@@ -187,33 +177,43 @@ func (m *DeepStackLoggerImpl) addToContextField(context []any, workError *DeepSt
 	}
 }
 
-type leanConsoleHandler struct{ w io.Writer }
+type stringHandler struct {
+	w     io.Writer
+	opts  *slog.HandlerOptions
+	attrs []slog.Attr
+}
 
-func (h leanConsoleHandler) Enabled(_ context.Context, _ slog.Level) bool { return true }
+func (s stringHandler) Enabled(_ context.Context, lvl slog.Level) bool {
+	if s.opts != nil && s.opts.Level != nil {
+		return lvl >= s.opts.Level.Level()
+	}
+	return true
+}
 
-func (h leanConsoleHandler) Handle(_ context.Context, r slog.Record) error {
+func (s stringHandler) Handle(_ context.Context, r slog.Record) error {
 	frame, _ := runtime.CallersFrames([]uintptr{r.PC}).Next()
 	fileLine := fmt.Sprintf("%s:%d", filepath.Base(frame.File), frame.Line)
-	var attrs []slog.Attr
+	var recAttrs []slog.Attr
 	r.Attrs(func(a slog.Attr) bool {
-		if a.Key == slog.SourceKey {
+		if a.Key == slog.SourceKey || a.Key == "stack_trace" {
 			return true
 		}
-		if a.Key == "stack_trace" {
-			return true
-		}
-		attrs = append(attrs, a)
+		recAttrs = append(recAttrs, a)
 		return true
 	})
-
 	c, reset := lvlColor[r.Level], "\x1b[0m"
-	fmt.Fprintf(h.w, "%s%s %s %s %q", c, r.Time.Format("2006-01-02 15:04:05.000"), r.Level, fileLine, r.Message)
-	for _, a := range attrs {
-		fmt.Fprintf(h.w, " %s=%v", a.Key, a.Value)
+	fmt.Fprintf(s.w, "%s%s %s %s %q", c, r.Time.Format("2006-01-02 15:04:05.000"), r.Level, fileLine, r.Message)
+	for _, a := range append(s.attrs, recAttrs...) {
+		fmt.Fprintf(s.w, " %s=%v", a.Key, a.Value)
 	}
-	fmt.Fprintln(h.w, reset)
+	fmt.Fprintln(s.w, reset)
 	return nil
 }
 
-func (h leanConsoleHandler) WithAttrs([]slog.Attr) slog.Handler { return h }
-func (h leanConsoleHandler) WithGroup(string) slog.Handler      { return h }
+func (s stringHandler) WithAttrs(a []slog.Attr) slog.Handler {
+	n := s
+	n.attrs = append(append([]slog.Attr{}, s.attrs...), a...)
+	return n
+}
+
+func (s stringHandler) WithGroup(string) slog.Handler { return s }
