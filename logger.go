@@ -20,7 +20,6 @@ type DeepStackLogger interface {
 	NewError(msg string, kv ...any) error
 }
 
-// idea for later: add the software version to the log so that "source" attribute deterministally references its origin
 func NewDeepStackLogger(logLevel string, enableWarningsForNonDeepStackErrors bool) DeepStackLogger {
 	logDir := "data/logs"
 	if err := os.MkdirAll(logDir, 0700); err != nil {
@@ -218,6 +217,3 @@ func (h leanConsoleHandler) Handle(_ context.Context, r slog.Record) error {
 
 func (h leanConsoleHandler) WithAttrs([]slog.Attr) slog.Handler { return h }
 func (h leanConsoleHandler) WithGroup(string) slog.Handler      { return h }
-
-// TODO feature: a function like AddContext("unique_operation_id") that takes values from the context.Context and adds it as field to the structured log. Not sure if that should be printed to console? but definitely should be printed to the log file; if the value is empty, I should maybe do a warning log, as this is a hint that I forgot to set the value in the context.Context somewhere in the code (maybe add a flag in the NewDeepStackLogger to dis-/enable this feature?)
-// TODO add the possibility to create a random ID when application starts so that I can group donated logs by deployed instances -> maybe the feature above could be combined with this; this is one global ID for whole application, while feature above needs a unique ID for each operation usually triggered by a user request
