@@ -20,7 +20,7 @@ type DeepStackLogger interface {
 	NewError(msg string, kv ...any) error
 }
 
-func NewDeepStackLoggerWithWriter(logLevel string, enableWarningsForNonDeepStackErrors bool, dst io.Writer) DeepStackLogger {
+func newDeepStackLoggerforTesting(logLevel string, enableWarningsForNonDeepStackErrors bool, dst io.Writer) DeepStackLogger {
 	if dst == nil {
 		dst = os.Stdout
 	}
@@ -38,7 +38,7 @@ func NewDeepStackLoggerWithWriter(logLevel string, enableWarningsForNonDeepStack
 }
 
 func NewDeepStackLogger(logLevel string, enableWarningsForNonDeepStackErrors bool) DeepStackLogger {
-	return NewDeepStackLoggerWithWriter(logLevel, enableWarningsForNonDeepStackErrors, os.Stdout)
+	return newDeepStackLoggerforTesting(logLevel, enableWarningsForNonDeepStackErrors, os.Stdout)
 }
 
 var lvlColor = map[slog.Level]string{
