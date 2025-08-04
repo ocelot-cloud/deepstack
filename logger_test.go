@@ -22,6 +22,7 @@ func TestLoggingVisually(t *testing.T) {
 	logger.Error("This is an info message", ErrorField, errors.New("some-error"))
 }
 
+// TODO during testing I also do not want to generate log files, as this is slow. architecture should be like this: only in memory unit tests; integration tests for writing to log file, maybe also for console output?; in production return the logger with real implementations
 // TODO problem: we need to also insert a date producer
 func TestConsoleOutput(t *testing.T) {
 	consoleSpy := &bytes.Buffer{}
