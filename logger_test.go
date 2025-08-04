@@ -26,7 +26,7 @@ func TestLoggingVisually(t *testing.T) {
 // TODO problem: we need to also insert a date producer
 func TestConsoleOutput(t *testing.T) {
 	consoleSpy := &bytes.Buffer{}
-	logger := newDeepStackLoggerforTesting("debug", false, consoleSpy)
+	logger := newDeepStackLoggerForTesting("debug", false, consoleSpy)
 	logger.Info("msg", "k", "v")
 	// TODO assert.Equal(t, "todo", consoleSpy.String())
 }

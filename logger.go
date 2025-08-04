@@ -20,25 +20,27 @@ type DeepStackLogger interface {
 	NewError(msg string, kv ...any) error
 }
 
-func newDeepStackLoggerforTesting(logLevel string, enableWarningsForNonDeepStackErrors bool, dst io.Writer) DeepStackLogger {
+// TODO I dont like that my business logic is coupled with slog. Instead it should be completely hidden behind an interface? not sure, maybe slog.Handler interface is tolerable as dependency
+func newDeepStackLoggerForTesting(logLevel string, enableWarningsForNonDeepStackErrors bool, dst io.Writer) DeepStackLogger {
+	// TODO nil should be rejected?
 	if dst == nil {
 		dst = os.Stdout
 	}
+
+	// TODO this block should be contained in the constructor block for the production log file writer
 	logDir := "data/logs"
 	_ = os.MkdirAll(logDir, 0700)
-
 	logFile := &lumberjack.Logger{Filename: logDir + "/app.log", MaxSize: 100, MaxAge: 30, Compress: true}
 	opts := &slog.HandlerOptions{AddSource: true, Level: convertToSlogLevel(logLevel)}
-
 	fileHandler := slog.NewJSONHandler(logFile, opts)
-	consoleHandler := stringHandler{w: dst, opts: opts}
 
+	consoleHandler := stringHandler{w: dst, opts: opts}
 	logger := slog.New(multiHandler{fileHandler, consoleHandler})
 	return &DeepStackLoggerImpl{logger: &LoggingBackendImpl{slog: logger}, enableWarningsForNonDeepStackErrors: enableWarningsForNonDeepStackErrors}
 }
 
 func NewDeepStackLogger(logLevel string, enableWarningsForNonDeepStackErrors bool) DeepStackLogger {
-	return newDeepStackLoggerforTesting(logLevel, enableWarningsForNonDeepStackErrors, os.Stdout)
+	return newDeepStackLoggerForTesting(logLevel, enableWarningsForNonDeepStackErrors, os.Stdout)
 }
 
 var lvlColor = map[slog.Level]string{
