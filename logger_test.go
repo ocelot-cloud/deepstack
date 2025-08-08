@@ -3,11 +3,14 @@ package deepstack
 import (
 	"bytes"
 	"errors"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"reflect"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
+
+// TODO there is not assertions yet, that the attributes "stack_trace" and "error_cause" are set in the log record
 
 // TODO I dont like that the output of this test is to be checked by humans. should be automated. Maybe add an option to return the output as a string?; check that afterwards not more console output is written
 func TestLoggingVisually(t *testing.T) {
@@ -67,14 +70,14 @@ func TestLogSkip(t *testing.T) {
 }
 
 func TestLogDeepStackError(t *testing.T) {
-	l, m := newLogger(t, false)
-	err := &DeepStackError{Message: "m", StackTrace: "trace", Context: map[string]any{"k": "v"}}
-	m.EXPECT().ShouldLogBeSkipped("error").Return(false)
-	m.EXPECT().CreateLogRecord("error", "msg").Return(GetSampleLogRecord())
-	m.EXPECT().HandleRecord(mock.Anything)
-	m.EXPECT().Println("trace")
-	l.log("error", "msg", ErrorField, err)
-	m.AssertExpectations(t)
+	logger, backendMock := newLogger(t, false)
+	err := &DeepStackError{Message: "error-cause", StackTrace: "trace", Context: map[string]any{"k": "v"}}
+	backendMock.EXPECT().ShouldLogBeSkipped("error").Return(false)
+	backendMock.EXPECT().CreateLogRecord("error", "msg").Return(GetSampleLogRecord())
+	backendMock.EXPECT().HandleRecord(mock.Anything)
+	backendMock.EXPECT().Println("trace")
+	logger.log("error", "msg", ErrorField, err)
+	backendMock.AssertExpectations(t)
 }
 
 func TestLogNormalErrorNoWarning(t *testing.T) {
@@ -116,10 +119,10 @@ func TestAddContextNormalError(t *testing.T) {
 	logger, backendMock := newLogger(t, true)
 	inputError := errors.New("some error")
 	backendMock.EXPECT().LogWarning("invalid error type in log message, must be *DeepStackError")
-	funcName(t, logger, inputError, backendMock)
+	todoMyChangeName(t, logger, inputError, backendMock)
 }
 
-func funcName(t *testing.T, l *DeepStackLoggerImpl, inputError error, m *LoggingBackendMock) {
+func todoMyChangeName(t *testing.T, l *DeepStackLoggerImpl, inputError error, m *LoggingBackendMock) {
 	outputError := l.AddContext(inputError, "key1", "value1", "key2", "value2")
 
 	err, ok := outputError.(*DeepStackError)
@@ -136,7 +139,7 @@ func funcName(t *testing.T, l *DeepStackLoggerImpl, inputError error, m *Logging
 func TestAddContextNormalError_DisabledWarnings(t *testing.T) {
 	logger, BackendMock := newLogger(t, false)
 	inputError := errors.New("some error")
-	funcName(t, logger, inputError, BackendMock)
+	todoMyChangeName(t, logger, inputError, BackendMock)
 }
 
 func TestAddContextDeepStackError(t *testing.T) {

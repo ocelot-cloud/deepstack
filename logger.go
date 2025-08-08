@@ -3,13 +3,14 @@ package deepstack
 import (
 	"context"
 	"fmt"
-	"gopkg.in/natefinch/lumberjack.v2"
 	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"reflect"
 	"runtime"
+
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 type DeepStackLogger interface {
@@ -121,6 +122,7 @@ func (m *DeepStackLoggerImpl) handleErrorField(record *LogRecord, key string, va
 			record.AddAttrs(contextKey, contextValue)
 		}
 		record.AddAttrs("stack_trace", detailedError.StackTrace)
+		// TODO record.AddAttrs("error_cause", detailedError.Message)
 		return detailedError.StackTrace
 	} else {
 		if m.enableWarningsForNonDeepStackErrors {
