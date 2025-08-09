@@ -74,15 +74,12 @@ func TestLogDeepStackError(t *testing.T) {
 	err := &DeepStackError{Message: "some-error-cause", StackTrace: "trace", Context: map[string]any{"key1": "value1"}}
 	backendMock.EXPECT().ShouldLogBeSkipped("error").Return(false)
 
-	/* TODO
-	expectedLogRecord := LogRecord{
+	expectedLogRecord := &LogRecord{
 		level:      "error",
 		msg:        "msg",
 		attributes: map[string]any{"key1": "value1", "stack_trace": "trace", "error_cause": "some-error-cause"},
 	}
 	backendMock.EXPECT().HandleRecord(expectedLogRecord)
-	*/
-	backendMock.EXPECT().HandleRecord(mock.Anything)
 
 	backendMock.EXPECT().Println("trace")
 	logger.log("error", "msg", ErrorField, err)
