@@ -93,7 +93,11 @@ func (m *DeepStackLoggerImpl) log(level string, msg string, keyValuePairs ...any
 		return
 	}
 
-	record := m.logger.CreateLogRecord(level, msg)
+	record := &LogRecord{
+		level:      level,
+		msg:        msg,
+		attributes: make(map[string]any),
+	}
 	var stackTrace string
 	for i := 0; i+1 < len(keyValuePairs); i += 2 {
 		key, ok := keyValuePairs[i].(string)

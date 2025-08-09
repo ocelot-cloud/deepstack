@@ -10,7 +10,6 @@ import (
 //go:generate mockery
 type LoggingBackend interface {
 	ShouldLogBeSkipped(level string) bool
-	CreateLogRecord(level string, msg string) *LogRecord
 	HandleRecord(logRecord *LogRecord)
 	Println(message string)
 	LogWarning(message string, kv ...any)
@@ -46,17 +45,13 @@ func (s *LoggingBackendImpl) logRecord(logRecord *LogRecord, skipFunctionTreeLev
 	_ = s.slog.Handler().Handle(context.Background(), slogRecord)
 }
 
-func (s *LoggingBackendImpl) CreateLogRecord(level string, msg string) *LogRecord {
-	return &LogRecord{
-		level:      level,
-		msg:        msg,
-		attributes: make(map[string]any),
-	}
-}
-
 func (s *LoggingBackendImpl) LogWarning(message string, kv ...any) {
 	if len(kv) == 0 {
-		record := s.CreateLogRecord("warn", message)
+		record := &LogRecord{
+			level:      "warn",
+			msg:        message,
+			attributes: make(map[string]any),
+		}
 		s.logRecord(record, 6)
 	} else if len(kv) == 2 {
 		key, ok := kv[0].(string)
