@@ -48,14 +48,6 @@ func subfunction(logger DeepStackLogger) error {
 	return logger.NewError("an error occurred", "key1", "value1")
 }
 
-func GetSampleLogRecord() *Record {
-	return &Record{
-		level:      "debug",
-		msg:        "some message",
-		attributes: map[string]any{"key1": "value1", "key2": "value2"},
-	}
-}
-
 func newLogger(tb testing.TB, warn bool) (*DeepStackLoggerImpl, *LoggingBackendMock) {
 	tb.Helper()
 	m := NewLoggingBackendMock(tb)
@@ -89,7 +81,7 @@ func TestLogDeepStackError(t *testing.T) {
 func TestLogNormalErrorNoWarning(t *testing.T) {
 	l, m := newLogger(t, false)
 	m.EXPECT().ShouldLogBeSkipped("error").Return(false)
-	m.EXPECT().LogRecord(mock.Anything)
+	m.EXPECT().LogRecord(mock.Anything) // TODO replace all occurrences of mock.Anything with something more specific
 	l.log("error", "msg", ErrorField, errors.New("e"))
 	m.AssertExpectations(t)
 }
