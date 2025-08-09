@@ -48,8 +48,8 @@ func subfunction(logger DeepStackLogger) error {
 	return logger.NewError("an error occurred", "key1", "value1")
 }
 
-func GetSampleLogRecord() *LogRecord {
-	return &LogRecord{
+func GetSampleLogRecord() *Record {
+	return &Record{
 		level:      "debug",
 		msg:        "some message",
 		attributes: map[string]any{"key1": "value1", "key2": "value2"},
@@ -74,12 +74,12 @@ func TestLogDeepStackError(t *testing.T) {
 	err := &DeepStackError{Message: "some-error-cause", StackTrace: "trace", Context: map[string]any{"key1": "value1"}}
 	backendMock.EXPECT().ShouldLogBeSkipped("error").Return(false)
 
-	expectedLogRecord := &LogRecord{
+	expectedLogRecord := &Record{
 		level:      "error",
 		msg:        "msg",
 		attributes: map[string]any{"key1": "value1", "stack_trace": "trace", "error_cause": "some-error-cause"},
 	}
-	backendMock.EXPECT().HandleRecord(expectedLogRecord)
+	backendMock.EXPECT().LogRecord(expectedLogRecord)
 
 	backendMock.EXPECT().Println("trace")
 	logger.log("error", "msg", ErrorField, err)
@@ -89,7 +89,7 @@ func TestLogDeepStackError(t *testing.T) {
 func TestLogNormalErrorNoWarning(t *testing.T) {
 	l, m := newLogger(t, false)
 	m.EXPECT().ShouldLogBeSkipped("error").Return(false)
-	m.EXPECT().HandleRecord(mock.Anything)
+	m.EXPECT().LogRecord(mock.Anything)
 	l.log("error", "msg", ErrorField, errors.New("e"))
 	m.AssertExpectations(t)
 }
@@ -98,14 +98,14 @@ func TestLogNormalErrorWithWarning(t *testing.T) {
 	l, m := newLogger(t, true)
 	m.EXPECT().ShouldLogBeSkipped("error").Return(false)
 	m.EXPECT().LogWarning("invalid error type in log message, must be *DeepStackError")
-	m.EXPECT().HandleRecord(mock.Anything)
+	m.EXPECT().LogRecord(mock.Anything)
 	l.log("error", "msg", ErrorField, errors.New("e"))
 	m.AssertExpectations(t)
 }
 
 func TestLogInvalidKeyType(t *testing.T) {
 	l, m := newLogger(t, false)
-	expectedLogRecord := &LogRecord{
+	expectedLogRecord := &Record{
 		level:      "info",
 		msg:        "msg",
 		attributes: map[string]any{"key2": "value2"},
@@ -116,7 +116,7 @@ func TestLogInvalidKeyType(t *testing.T) {
 		"invalid key type in log message, must always be string",
 		[]interface{}{"type", reflect.TypeOf(0).String()},
 	)
-	m.EXPECT().HandleRecord(expectedLogRecord)
+	m.EXPECT().LogRecord(expectedLogRecord)
 	l.log("info", "msg", 123, "value1", "key2", "value2")
 	m.AssertExpectations(t)
 }

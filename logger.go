@@ -93,7 +93,7 @@ func (m *DeepStackLoggerImpl) log(level string, msg string, keyValuePairs ...any
 		return
 	}
 
-	record := &LogRecord{
+	record := &Record{
 		level:      level,
 		msg:        msg,
 		attributes: make(map[string]any),
@@ -113,13 +113,13 @@ func (m *DeepStackLoggerImpl) log(level string, msg string, keyValuePairs ...any
 			record.AddAttrs(key, value)
 		}
 	}
-	m.logger.HandleRecord(record)
+	m.logger.LogRecord(record)
 	if stackTrace != "" {
 		m.logger.Println(stackTrace)
 	}
 }
 
-func (m *DeepStackLoggerImpl) handleErrorField(record *LogRecord, key string, value any) string {
+func (m *DeepStackLoggerImpl) handleErrorField(record *Record, key string, value any) string {
 	detailedError, ok := value.(*DeepStackError)
 	if ok {
 		for contextKey, contextValue := range detailedError.Context {

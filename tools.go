@@ -46,13 +46,13 @@ func convertToSlogLevel(logLevel string) slog.Level {
 	}
 }
 
-type LogRecord struct {
+type Record struct {
 	level      string
 	msg        string
 	attributes map[string]any
 }
 
-func (r *LogRecord) AddAttrs(key string, value any) {
+func (r *Record) AddAttrs(key string, value any) {
 	r.attributes[key] = value
 }
 
