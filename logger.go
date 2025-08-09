@@ -122,7 +122,7 @@ func (m *DeepStackLoggerImpl) handleErrorField(record *LogRecord, key string, va
 			record.AddAttrs(contextKey, contextValue)
 		}
 		record.AddAttrs("stack_trace", detailedError.StackTrace)
-		// TODO record.AddAttrs("error_cause", detailedError.Message)
+		record.AddAttrs("error_cause", detailedError.Message)
 		return detailedError.StackTrace
 	} else {
 		if m.enableWarningsForNonDeepStackErrors {
