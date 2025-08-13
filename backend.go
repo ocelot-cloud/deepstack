@@ -11,7 +11,7 @@ import (
 type LoggingBackend interface {
 	ShouldLogBeSkipped(level string) bool
 	LogRecord(logRecord *Record)
-	Println(message string)
+	PrintStackTrace(message string)
 	LogWarning(message string, kv ...any)
 }
 
@@ -20,8 +20,8 @@ type LoggingBackendImpl struct {
 	slog *slog.Logger
 }
 
-func (s *LoggingBackendImpl) Println(message string) {
-	println(message)
+func (s *LoggingBackendImpl) PrintStackTrace(stackTrace string) {
+	println(stackTrace)
 }
 
 func (s *LoggingBackendImpl) ShouldLogBeSkipped(level string) bool {
@@ -55,6 +55,7 @@ func (s *LoggingBackendImpl) LogWarning(message string, kv ...any) {
 		}
 		s.logRecord(record, 6)
 	} else if len(kv) == 2 {
+		// TODO block not covered by tests
 		key, ok := kv[0].(string)
 		if !ok {
 			s.slog.Warn("invalid key type in log message, must always be string", slog.Any("key", kv[0]))

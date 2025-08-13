@@ -80,7 +80,7 @@ func (m *DeepStackLoggerImpl) log(level string, msg string, keyValuePairs ...any
 	}
 	m.logger.LogRecord(record)
 	if stackTrace != "" {
-		m.logger.Println(stackTrace)
+		m.logger.PrintStackTrace(stackTrace)
 	}
 }
 
