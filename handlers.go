@@ -43,6 +43,8 @@ func (h multiHandler) WithGroup(name string) slog.Handler {
 	return out
 }
 
+// TODO add tests to console handler
+
 type consoleHandler struct {
 	w     io.Writer
 	opts  *slog.HandlerOptions

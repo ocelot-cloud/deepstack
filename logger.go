@@ -17,15 +17,6 @@ type DeepStackLogger interface {
 	NewError(msg string, kv ...any) error
 }
 
-// TODO I dont like that my business logic is coupled with slog. Instead it should be completely hidden behind an interface? not sure, maybe slog.Handler interface is tolerable as dependency
-func newDeepStackLoggerWithCustomWriter(logLevel string, enableWarningsForNonDeepStackErrors bool, dst io.Writer) DeepStackLogger {
-	slogLogger := getSlogLogger(logLevel, dst)
-	return &DeepStackLoggerImpl{
-		logger:               &LoggingBackendImpl{slog: slogLogger},
-		enableMisuseWarnings: enableWarningsForNonDeepStackErrors,
-	}
-}
-
 func getSlogLogger(logLevel string, dst io.Writer) *slog.Logger {
 	// TODO nil should be rejected?
 	if dst == nil {
@@ -45,7 +36,11 @@ func getSlogLogger(logLevel string, dst io.Writer) *slog.Logger {
 }
 
 func NewDeepStackLogger(logLevel string, enableWarningsForNonDeepStackErrors bool) DeepStackLogger {
-	return newDeepStackLoggerWithCustomWriter(logLevel, enableWarningsForNonDeepStackErrors, os.Stdout)
+	slogLogger := getSlogLogger(logLevel, os.Stdout)
+	return &DeepStackLoggerImpl{
+		logger:               &LoggingBackendImpl{slog: slogLogger},
+		enableMisuseWarnings: enableWarningsForNonDeepStackErrors,
+	}
 }
 
 var lvlColor = map[slog.Level]string{
@@ -124,7 +119,7 @@ func (m *DeepStackLoggerImpl) NewError(msg string, kv ...any) error {
 
 	return &DeepStackError{
 		Message:    msg,
-		StackTrace: printStackTrace(),
+		StackTrace: printStackTrace(), // TODO stack trace should be inject; test whether value was handled correctly
 		Context:    contextMap,
 	}
 }

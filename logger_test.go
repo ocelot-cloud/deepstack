@@ -1,7 +1,6 @@
 package deepstack
 
 import (
-	"bytes"
 	"errors"
 	"reflect"
 	"testing"
@@ -23,15 +22,6 @@ func TestLoggingVisually(t *testing.T) {
 	logger.Info("This is an info message", "key1", "value1", "key2", "value 2")
 	logger.Error("This is an info message", ErrorField, "some-error")
 	logger.Error("This is an info message", ErrorField, errors.New("some-error"))
-}
-
-// TODO during testing I also do not want to generate log files, as this is slow. architecture should be like this: only in memory unit tests; integration tests for writing to log file, maybe also for console output?; in production return the logger with real implementations
-// TODO problem: we need to also insert a date producer
-func TestConsoleOutput(t *testing.T) {
-	consoleSpy := &bytes.Buffer{}
-	logger := newDeepStackLoggerWithCustomWriter("debug", false, consoleSpy)
-	logger.Info("msg", "k", "v")
-	// TODO assert.Equal(t, "todo", consoleSpy.String())
 }
 
 func TestLoggingVisuallyOfNormalError(t *testing.T) {
