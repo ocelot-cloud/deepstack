@@ -58,7 +58,7 @@ func (s *LoggingBackendImpl) LogWarning(message string, kv ...any) {
 		// TODO block not covered by tests
 		key, ok := kv[0].(string)
 		if !ok {
-			s.slog.Warn("invalid key type in log message, must always be string", slog.Any("key", kv[0]))
+			s.slog.Warn(invalidKeyTypeMessage, slog.Any("key", kv[0]))
 			return
 		}
 		s.slog.Warn(message, slog.Any(key, kv[1]))

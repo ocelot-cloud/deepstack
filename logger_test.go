@@ -45,7 +45,7 @@ func TestLogDeepStackError(t *testing.T) {
 func TestLogNormalErrorWithWarning(t *testing.T) {
 	l, m, _ := newLogger(t)
 	m.EXPECT().ShouldLogBeSkipped("error").Return(false)
-	m.EXPECT().LogWarning("invalid error type in log message, must be *DeepStackError")
+	m.EXPECT().LogWarning(invalidErrorTypeMessage)
 	m.EXPECT().LogRecord(mock.Anything)
 	l.log("error", "msg", ErrorField, errors.New("e"))
 	m.AssertExpectations(t)
@@ -61,7 +61,7 @@ func TestLogInvalidKeyType(t *testing.T) {
 
 	m.EXPECT().ShouldLogBeSkipped("info").Return(false)
 	m.EXPECT().LogWarning(
-		"invalid key type in log message, must always be string",
+		invalidKeyTypeMessage,
 		[]interface{}{"type", reflect.TypeOf(0).String()},
 	)
 	m.EXPECT().LogRecord(expectedLogRecord)
@@ -72,7 +72,7 @@ func TestLogInvalidKeyType(t *testing.T) {
 func TestAddContextNormalError(t *testing.T) {
 	logger, backendMock, stackTracerMock := newLogger(t)
 	inputError := errors.New("some error")
-	backendMock.EXPECT().LogWarning("invalid error type in log message, must be *DeepStackError")
+	backendMock.EXPECT().LogWarning(invalidErrorTypeMessage)
 	stackTracerMock.EXPECT().GetStackTrace().Return("some-stack-trace")
 	createAndAssertDeepstackError(t, logger, inputError)
 	backendMock.AssertExpectations(t)
@@ -116,7 +116,7 @@ func TestAddContextDeepStackError_DisabledWarnings(t *testing.T) {
 	stackTracerMock.EXPECT().GetStackTrace().Return("some-stack-trace")
 	inputError := logger.NewError("some-error")
 
-	backendMock.EXPECT().LogWarning("invalid key type in log message, must always be string", []any{"actual_type", "int"})
+	backendMock.EXPECT().LogWarning(invalidKeyTypeMessage, []any{"actual_type", "int"})
 	outputError := logger.AddContext(inputError, 1234, "key1", "key2", "value2")
 
 	outputDeepstackError, ok := outputError.(*DeepStackError)

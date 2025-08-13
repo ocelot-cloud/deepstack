@@ -8,7 +8,10 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-// TODO abstract all logging error messages
+const (
+	invalidKeyTypeMessage   = "invalid key type in log message, must always be string"
+	invalidErrorTypeMessage = "invalid error type in log message, must be *DeepStackError"
+)
 
 type DeepStackLogger interface {
 	Debug(msg string, kv ...any)
@@ -66,7 +69,7 @@ func (m *DeepStackLoggerImpl) log(level string, msg string, keyValuePairs ...any
 	for i := 0; i+1 < len(keyValuePairs); i += 2 {
 		key, ok := keyValuePairs[i].(string)
 		if !ok {
-			m.logger.LogWarning("invalid key type in log message, must always be string", "type", reflect.TypeOf(keyValuePairs[i]).String())
+			m.logger.LogWarning(invalidKeyTypeMessage, "type", reflect.TypeOf(keyValuePairs[i]).String())
 			continue // TODO can be removed without causing tests to fail, fix this
 		}
 
@@ -94,7 +97,7 @@ func (m *DeepStackLoggerImpl) handleErrorField(record *Record, key string, value
 		return detailedError.StackTrace
 	} else {
 		// TODO abstract message duplication
-		m.logger.LogWarning("invalid error type in log message, must be *DeepStackError")
+		m.logger.LogWarning(invalidErrorTypeMessage)
 		record.AddAttrs(key, value)
 		// TODO strange, shouldn't I return the stack trace here?
 		return ""
@@ -126,7 +129,7 @@ func (m *DeepStackLoggerImpl) AddContext(err error, context ...any) error {
 		m.addToContextField(context, deepStackError)
 		return deepStackError
 	} else {
-		m.logger.LogWarning("invalid error type in log message, must be *DeepStackError")
+		m.logger.LogWarning(invalidErrorTypeMessage)
 		deepStackError := &DeepStackError{
 			Message:    err.Error(),
 			StackTrace: m.stackTracer.GetStackTrace(),
@@ -142,8 +145,7 @@ func (m *DeepStackLoggerImpl) addToContextField(context []any, deepStackError *D
 		if key, ok := context[i].(string); ok {
 			deepStackError.Context[key] = context[i+1]
 		} else {
-			// TODO this is not tested yet
-			m.logger.LogWarning("invalid key type in log message, must always be string", "actual_type", reflect.TypeOf(context[i]).String())
+			m.logger.LogWarning(invalidKeyTypeMessage, "actual_type", reflect.TypeOf(context[i]).String())
 		}
 	}
 }
