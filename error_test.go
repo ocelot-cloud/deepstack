@@ -7,12 +7,7 @@ import (
 )
 
 func TestErrorToString(t *testing.T) {
-	stackTracerMock := NewStackTracerMock(t)
-	logger := DeepStackLoggerImpl{
-		logger:               nil,
-		enableMisuseWarnings: false,
-		stackTracer:          stackTracerMock,
-	}
+	logger, _, stackTracerMock := newLogger(t)
 	stackTracerMock.EXPECT().GetStackTrace().Return("some-stack-trace")
 	testError := logger.NewError("an error occurred", "key1", "value1")
 

@@ -8,6 +8,8 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
+// TODO abstract all logging error messages
+
 type DeepStackLogger interface {
 	Debug(msg string, kv ...any)
 	Info(msg string, kv ...any)
@@ -28,14 +30,13 @@ func NewFileHandler(opts *slog.HandlerOptions) *slog.JSONHandler {
 	return fileHandler
 }
 
-func NewDeepStackLogger(logLevel string, enableWarningsForNonDeepStackErrors bool) DeepStackLogger {
+func NewDeepStackLogger(logLevel string) DeepStackLogger {
 	opts := &slog.HandlerOptions{AddSource: true, Level: convertToSlogLevel(logLevel)}
 	fileHandler := NewFileHandler(opts)
 	consoleHandlerObj := NewConsoleHandler(opts)
 	slogLogger := slog.New(multiHandler{fileHandler, consoleHandlerObj})
 	return &DeepStackLoggerImpl{
-		logger:               &LoggingBackendImpl{slog: slogLogger},
-		enableMisuseWarnings: enableWarningsForNonDeepStackErrors,
+		logger: &LoggingBackendImpl{slog: slogLogger},
 	}
 }
 
@@ -47,10 +48,8 @@ var lvlColor = map[slog.Level]string{
 }
 
 type DeepStackLoggerImpl struct {
-	logger LoggingBackend
-	// if enabled, when the framework is not used correctly, a warning is logged
-	enableMisuseWarnings bool
-	stackTracer          StackTracer
+	logger      LoggingBackend
+	stackTracer StackTracer
 }
 
 func (m *DeepStackLoggerImpl) log(level string, msg string, keyValuePairs ...any) {
@@ -94,10 +93,10 @@ func (m *DeepStackLoggerImpl) handleErrorField(record *Record, key string, value
 		record.AddAttrs("error_cause", detailedError.Message)
 		return detailedError.StackTrace
 	} else {
-		if m.enableMisuseWarnings {
-			m.logger.LogWarning("invalid error type in log message, must be *DeepStackError")
-		}
+		// TODO abstract message duplication
+		m.logger.LogWarning("invalid error type in log message, must be *DeepStackError")
 		record.AddAttrs(key, value)
+		// TODO strange, shouldn't I return the stack trace here?
 		return ""
 	}
 }
@@ -122,15 +121,12 @@ func (m *DeepStackLoggerImpl) NewError(msg string, kv ...any) error {
 }
 
 func (m *DeepStackLoggerImpl) AddContext(err error, context ...any) error {
-	workError, ok := err.(*DeepStackError)
+	deepStackError, ok := err.(*DeepStackError)
 	if ok {
-		m.addToContextField(context, workError)
-		return workError
+		m.addToContextField(context, deepStackError)
+		return deepStackError
 	} else {
-		// TODO get rid of this, wa want these warnings always enabled
-		if m.enableMisuseWarnings {
-			m.logger.LogWarning("invalid error type in log message, must be *DeepStackError")
-		}
+		m.logger.LogWarning("invalid error type in log message, must be *DeepStackError")
 		deepStackError := &DeepStackError{
 			Message:    err.Error(),
 			StackTrace: m.stackTracer.GetStackTrace(),
