@@ -29,7 +29,7 @@ func TestLoggingVisually(t *testing.T) {
 // TODO problem: we need to also insert a date producer
 func TestConsoleOutput(t *testing.T) {
 	consoleSpy := &bytes.Buffer{}
-	logger := newDeepStackLoggerForTesting("debug", false, consoleSpy)
+	logger := newDeepStackLoggerWithCustomWriter("debug", false, consoleSpy)
 	logger.Info("msg", "k", "v")
 	// TODO assert.Equal(t, "todo", consoleSpy.String())
 }
@@ -51,7 +51,7 @@ func subfunction(logger DeepStackLogger) error {
 func newLogger(tb testing.TB, warn bool) (*DeepStackLoggerImpl, *LoggingBackendMock) {
 	tb.Helper()
 	m := NewLoggingBackendMock(tb)
-	return &DeepStackLoggerImpl{logger: m, enableWarningsForNonDeepStackErrors: warn}, m
+	return &DeepStackLoggerImpl{logger: m, enableMisuseWarnings: warn}, m
 }
 
 func TestLogSkip(t *testing.T) {

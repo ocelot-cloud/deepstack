@@ -1,14 +1,10 @@
 package deepstack
 
 import (
-	"context"
-	"fmt"
 	"io"
 	"log/slog"
 	"os"
-	"path/filepath"
 	"reflect"
-	"runtime"
 
 	"gopkg.in/natefinch/lumberjack.v2"
 )
@@ -22,7 +18,15 @@ type DeepStackLogger interface {
 }
 
 // TODO I dont like that my business logic is coupled with slog. Instead it should be completely hidden behind an interface? not sure, maybe slog.Handler interface is tolerable as dependency
-func newDeepStackLoggerForTesting(logLevel string, enableWarningsForNonDeepStackErrors bool, dst io.Writer) DeepStackLogger {
+func newDeepStackLoggerWithCustomWriter(logLevel string, enableWarningsForNonDeepStackErrors bool, dst io.Writer) DeepStackLogger {
+	slogLogger := getSlogLogger(logLevel, dst)
+	return &DeepStackLoggerImpl{
+		logger:               &LoggingBackendImpl{slog: slogLogger},
+		enableMisuseWarnings: enableWarningsForNonDeepStackErrors,
+	}
+}
+
+func getSlogLogger(logLevel string, dst io.Writer) *slog.Logger {
 	// TODO nil should be rejected?
 	if dst == nil {
 		dst = os.Stdout
@@ -35,13 +39,13 @@ func newDeepStackLoggerForTesting(logLevel string, enableWarningsForNonDeepStack
 	opts := &slog.HandlerOptions{AddSource: true, Level: convertToSlogLevel(logLevel)}
 	fileHandler := slog.NewJSONHandler(logFile, opts)
 
-	consoleHandler := stringHandler{w: dst, opts: opts}
-	logger := slog.New(multiHandler{fileHandler, consoleHandler})
-	return &DeepStackLoggerImpl{logger: &LoggingBackendImpl{slog: logger}, enableWarningsForNonDeepStackErrors: enableWarningsForNonDeepStackErrors}
+	consoleHandlerObj := consoleHandler{w: dst, opts: opts}
+	logger := slog.New(multiHandler{fileHandler, consoleHandlerObj})
+	return logger
 }
 
 func NewDeepStackLogger(logLevel string, enableWarningsForNonDeepStackErrors bool) DeepStackLogger {
-	return newDeepStackLoggerForTesting(logLevel, enableWarningsForNonDeepStackErrors, os.Stdout)
+	return newDeepStackLoggerWithCustomWriter(logLevel, enableWarningsForNonDeepStackErrors, os.Stdout)
 }
 
 var lvlColor = map[slog.Level]string{
@@ -51,41 +55,10 @@ var lvlColor = map[slog.Level]string{
 	slog.LevelError: "\x1b[31m", // red
 }
 
-type multiHandler []slog.Handler
-
-func (h multiHandler) Enabled(ctx context.Context, lvl slog.Level) bool {
-	for _, hd := range h {
-		if hd.Enabled(ctx, lvl) {
-			return true
-		}
-	}
-	return false
-}
-func (h multiHandler) Handle(ctx context.Context, r slog.Record) error {
-	for _, hd := range h {
-		_ = hd.Handle(ctx, r)
-	}
-	return nil
-}
-func (h multiHandler) WithAttrs(a []slog.Attr) slog.Handler {
-	out := make(multiHandler, len(h))
-	for i, hd := range h {
-		out[i] = hd.WithAttrs(a)
-	}
-	return out
-}
-
-func (h multiHandler) WithGroup(name string) slog.Handler {
-	out := make(multiHandler, len(h))
-	for i, hd := range h {
-		out[i] = hd.WithGroup(name)
-	}
-	return out
-}
-
 type DeepStackLoggerImpl struct {
-	logger                              LoggingBackend
-	enableWarningsForNonDeepStackErrors bool
+	logger LoggingBackend
+	// if enabled, when the framework is not used correctly, a warning is logged
+	enableMisuseWarnings bool
 }
 
 func (m *DeepStackLoggerImpl) log(level string, msg string, keyValuePairs ...any) {
@@ -129,7 +102,7 @@ func (m *DeepStackLoggerImpl) handleErrorField(record *Record, key string, value
 		record.AddAttrs("error_cause", detailedError.Message)
 		return detailedError.StackTrace
 	} else {
-		if m.enableWarningsForNonDeepStackErrors {
+		if m.enableMisuseWarnings {
 			m.logger.LogWarning("invalid error type in log message, must be *DeepStackError")
 		}
 		record.AddAttrs(key, value)
@@ -162,7 +135,7 @@ func (m *DeepStackLoggerImpl) AddContext(err error, context ...any) error {
 		m.addToContextField(context, workError)
 		return workError
 	} else {
-		if m.enableWarningsForNonDeepStackErrors {
+		if m.enableMisuseWarnings {
 			m.logger.LogWarning("invalid error type in log message, must be *DeepStackError")
 		}
 		deepStackError := &DeepStackError{
@@ -184,44 +157,3 @@ func (m *DeepStackLoggerImpl) addToContextField(context []any, workError *DeepSt
 		}
 	}
 }
-
-type stringHandler struct {
-	w     io.Writer
-	opts  *slog.HandlerOptions
-	attrs []slog.Attr
-}
-
-func (s stringHandler) Enabled(_ context.Context, lvl slog.Level) bool {
-	if s.opts != nil && s.opts.Level != nil {
-		return lvl >= s.opts.Level.Level()
-	}
-	return true
-}
-
-func (s stringHandler) Handle(_ context.Context, r slog.Record) error {
-	frame, _ := runtime.CallersFrames([]uintptr{r.PC}).Next()
-	fileLine := fmt.Sprintf("%s:%d", filepath.Base(frame.File), frame.Line)
-	var recAttrs []slog.Attr
-	r.Attrs(func(a slog.Attr) bool {
-		if a.Key == slog.SourceKey || a.Key == "stack_trace" {
-			return true
-		}
-		recAttrs = append(recAttrs, a)
-		return true
-	})
-	c, reset := lvlColor[r.Level], "\x1b[0m"
-	fmt.Fprintf(s.w, "%s%s %s %s %q", c, r.Time.Format("2006-01-02 15:04:05.000"), r.Level, fileLine, r.Message)
-	for _, a := range append(s.attrs, recAttrs...) {
-		fmt.Fprintf(s.w, " %s=%v", a.Key, a.Value)
-	}
-	fmt.Fprintln(s.w, reset)
-	return nil
-}
-
-func (s stringHandler) WithAttrs(a []slog.Attr) slog.Handler {
-	n := s
-	n.attrs = append(append([]slog.Attr{}, s.attrs...), a...)
-	return n
-}
-
-func (s stringHandler) WithGroup(string) slog.Handler { return s }
