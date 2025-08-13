@@ -45,7 +45,7 @@ func TestLogDeepStackError(t *testing.T) {
 	}
 	backendMock.EXPECT().LogRecord(expectedLogRecord)
 
-	backendMock.EXPECT().Println("trace")
+	backendMock.EXPECT().PrintStackTrace("trace")
 	logger.log("error", "msg", ErrorField, err)
 	backendMock.AssertExpectations(t)
 }
