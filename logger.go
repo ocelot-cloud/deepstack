@@ -58,13 +58,11 @@ type DeepStackLoggerImpl struct {
 	stackTracer StackTracer
 }
 
-func (m *DeepStackLoggerImpl) log(level string, msg string, keyValuePairs ...any) {
+func (m *DeepStackLoggerImpl) log(level string, msg string, context ...any) {
 	if m.logger.ShouldLogBeSkipped(level) {
 		return
 	}
-	if len(keyValuePairs)%2 != 0 {
-		m.logger.LogWarning(oddKeyValuePairNumberMessage)
-	}
+	m.logPotentialContextIssues(context)
 
 	record := &Record{
 		level:      level,
@@ -72,14 +70,14 @@ func (m *DeepStackLoggerImpl) log(level string, msg string, keyValuePairs ...any
 		attributes: make(map[string]any),
 	}
 	var stackTrace string
-	for i := 0; i+1 < len(keyValuePairs); i += 2 {
-		key, ok := keyValuePairs[i].(string)
+	for i := 0; i+1 < len(context); i += 2 {
+		key, ok := context[i].(string)
 		if !ok {
-			m.logger.LogWarning(invalidKeyTypeMessage, actualTypeField, reflect.TypeOf(keyValuePairs[i]).String())
+			m.logger.LogWarning(invalidKeyTypeMessage, actualTypeField, reflect.TypeOf(context[i]).String())
 			continue // TODO can be removed without causing tests to fail, fix this
 		}
 
-		value := keyValuePairs[i+1]
+		value := context[i+1]
 		if key == ErrorField {
 			stackTrace = m.appendStackErrorToRecord(record, key, value)
 		} else {
@@ -90,6 +88,13 @@ func (m *DeepStackLoggerImpl) log(level string, msg string, keyValuePairs ...any
 	if stackTrace != "" {
 		m.logger.PrintStackTrace(stackTrace)
 	}
+}
+
+func (m *DeepStackLoggerImpl) logPotentialContextIssues(context []any) {
+	if len(context)%2 != 0 {
+		m.logger.LogWarning(oddKeyValuePairNumberMessage)
+	}
+	// TODO make this function a context checker. If something is wrong, remove the kv pair. Return a sanitized map[string]any to remove duplication of such logic
 }
 
 func (m *DeepStackLoggerImpl) appendStackErrorToRecord(record *Record, key string, value any) string {
@@ -128,9 +133,7 @@ func (m *DeepStackLoggerImpl) NewError(msg string, kv ...any) error {
 }
 
 func (m *DeepStackLoggerImpl) AddContext(err error, context ...any) error {
-	if len(context)%2 != 0 {
-		m.logger.LogWarning(oddKeyValuePairNumberMessage)
-	}
+	m.logPotentialContextIssues(context)
 	deepStackError, ok := err.(*DeepStackError)
 	if ok {
 		m.addToContextField(context, deepStackError)
