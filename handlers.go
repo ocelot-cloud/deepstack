@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"os"
 	"path/filepath"
 	"runtime"
 )
+
+var workDir = getWorkDir()
 
 type multiHandler []slog.Handler
 
@@ -59,8 +62,7 @@ func (s ConsoleHandler) Enabled(_ context.Context, lvl slog.Level) bool {
 }
 
 func (s ConsoleHandler) Handle(_ context.Context, r slog.Record) error {
-	frame, _ := runtime.CallersFrames([]uintptr{r.PC}).Next()
-	fileLine := fmt.Sprintf("%s:%d", filepath.Base(frame.File), frame.Line)
+	fileLine := getFileLineRelativeToWorkDir(r)
 	var recAttrs []slog.Attr
 	r.Attrs(func(a slog.Attr) bool {
 		if a.Key == slog.SourceKey || a.Key == "stack_trace" {
@@ -76,6 +78,20 @@ func (s ConsoleHandler) Handle(_ context.Context, r slog.Record) error {
 	}
 	fmt.Fprintln(s.w, reset)
 	return nil
+}
+
+func getWorkDir() string {
+	currentDir, _ := os.Getwd()
+	return currentDir
+}
+
+func getFileLineRelativeToWorkDir(r slog.Record) string {
+	frame, _ := runtime.CallersFrames([]uintptr{r.PC}).Next()
+	p, err := filepath.Rel(workDir, frame.File)
+	if err != nil {
+		p = filepath.Base(frame.File)
+	}
+	return fmt.Sprintf("%s:%d", p, frame.Line)
 }
 
 func (s ConsoleHandler) WithAttrs(a []slog.Attr) slog.Handler {

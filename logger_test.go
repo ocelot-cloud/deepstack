@@ -9,6 +9,18 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
+func TestLoggingVisually(t *testing.T) {
+	logger := NewDeepStackLogger("debug")
+	logger.Debug("This is a debug message")
+	logger.Info("This is an info message")
+	logger.Warn("This is a warning message")
+	logger.Error("This is an error message")
+
+	logger.Info("This is an info message", "key1", "value1", "key2", "value 2")
+	logger.Error("This is an info message", ErrorField, "some-error")
+	logger.Error("This is an info message", ErrorField, errors.New("some-error"))
+}
+
 func newLogger(t *testing.T) (*DeepStackLoggerImpl, *LoggingBackendMock, *StackTracerMock) {
 	loggingBackendMock := NewLoggingBackendMock(t)
 	stackTracerMock := NewStackTracerMock(t)
