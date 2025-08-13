@@ -20,11 +20,11 @@ const (
 )
 
 type DeepStackLogger interface {
-	Debug(msg string, kv ...any)
-	Info(msg string, kv ...any)
-	Warn(msg string, kv ...any)
-	Error(msg string, kv ...any)
-	NewError(msg string, kv ...any) error
+	Debug(msg string, context ...any)
+	Info(msg string, context ...any)
+	Warn(msg string, context ...any)
+	Error(msg string, context ...any)
+	NewError(msg string, context ...any) error
 }
 
 func NewConsoleHandler(opts *slog.HandlerOptions) *ConsoleHandler {
@@ -122,15 +122,15 @@ func (m *DeepStackLoggerImpl) appendStackErrorToRecord(record *Record, key strin
 	}
 }
 
-func (m *DeepStackLoggerImpl) Debug(msg string, kv ...any) { m.log("debug", msg, kv...) }
-func (m *DeepStackLoggerImpl) Info(msg string, kv ...any)  { m.log("info", msg, kv...) }
-func (m *DeepStackLoggerImpl) Warn(msg string, kv ...any)  { m.log("warn", msg, kv...) }
-func (m *DeepStackLoggerImpl) Error(msg string, kv ...any) { m.log("error", msg, kv...) }
-func (m *DeepStackLoggerImpl) NewError(msg string, kv ...any) error {
+func (m *DeepStackLoggerImpl) Debug(msg string, context ...any) { m.log("debug", msg, context...) }
+func (m *DeepStackLoggerImpl) Info(msg string, context ...any)  { m.log("info", msg, context...) }
+func (m *DeepStackLoggerImpl) Warn(msg string, context ...any)  { m.log("warn", msg, context...) }
+func (m *DeepStackLoggerImpl) Error(msg string, context ...any) { m.log("error", msg, context...) }
+func (m *DeepStackLoggerImpl) NewError(msg string, context ...any) error {
 	var contextMap = make(map[string]any)
-	for i := 0; i+1 < len(kv); i += 2 {
-		if k, ok := kv[i].(string); ok {
-			contextMap[k] = kv[i+1]
+	for i := 0; i+1 < len(context); i += 2 {
+		if k, ok := context[i].(string); ok {
+			contextMap[k] = context[i+1]
 		}
 	}
 
