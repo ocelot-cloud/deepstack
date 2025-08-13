@@ -96,10 +96,8 @@ func (m *DeepStackLoggerImpl) handleErrorField(record *Record, key string, value
 		record.AddAttrs("error_cause", detailedError.Message)
 		return detailedError.StackTrace
 	} else {
-		// TODO abstract message duplication
 		m.logger.LogWarning(invalidErrorTypeMessage)
 		record.AddAttrs(key, value)
-		// TODO strange, shouldn't I return the stack trace here?
 		return ""
 	}
 }
