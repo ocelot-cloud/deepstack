@@ -62,7 +62,7 @@ func (m *DeepStackLoggerImpl) log(level string, msg string, context ...any) {
 	if m.logger.ShouldLogBeSkipped(level) {
 		return
 	}
-	m.logPotentialContextIssues(context)
+	sanitizedContext := m.sanitizeContext(context)
 
 	record := &Record{
 		level:      level,
@@ -70,14 +70,7 @@ func (m *DeepStackLoggerImpl) log(level string, msg string, context ...any) {
 		attributes: make(map[string]any),
 	}
 	var stackTrace string
-	for i := 0; i+1 < len(context); i += 2 {
-		key, ok := context[i].(string)
-		if !ok {
-			m.logger.LogWarning(invalidKeyTypeMessage, actualTypeField, reflect.TypeOf(context[i]).String())
-			continue // TODO can be removed without causing tests to fail, fix this
-		}
-
-		value := context[i+1]
+	for key, value := range sanitizedContext {
 		if key == ErrorField {
 			stackTrace = m.appendStackErrorToRecord(record, key, value)
 		} else {
@@ -90,11 +83,20 @@ func (m *DeepStackLoggerImpl) log(level string, msg string, context ...any) {
 	}
 }
 
-func (m *DeepStackLoggerImpl) logPotentialContextIssues(context []any) {
+func (m *DeepStackLoggerImpl) sanitizeContext(context []any) map[string]any {
 	if len(context)%2 != 0 {
 		m.logger.LogWarning(oddKeyValuePairNumberMessage)
 	}
-	// TODO make this function a context checker. If something is wrong, remove the kv pair. Return a sanitized map[string]any to remove duplication of such logic
+
+	result := make(map[string]any)
+	for i := 0; i+1 < len(context); i += 2 {
+		if key, ok := context[i].(string); ok {
+			result[key] = context[i+1]
+		} else {
+			m.logger.LogWarning(invalidKeyTypeMessage, actualTypeField, reflect.TypeOf(context[i]).String())
+		}
+	}
+	return result
 }
 
 func (m *DeepStackLoggerImpl) appendStackErrorToRecord(record *Record, key string, value any) string {
@@ -133,10 +135,10 @@ func (m *DeepStackLoggerImpl) NewError(msg string, kv ...any) error {
 }
 
 func (m *DeepStackLoggerImpl) AddContext(err error, context ...any) error {
-	m.logPotentialContextIssues(context)
+	sanitizedContext := m.sanitizeContext(context)
 	deepStackError, ok := err.(*DeepStackError)
 	if ok {
-		m.addToContextField(context, deepStackError)
+		m.addToContextField(sanitizedContext, deepStackError)
 		return deepStackError
 	} else {
 		m.logger.LogWarning(invalidErrorTypeMessage)
@@ -145,17 +147,13 @@ func (m *DeepStackLoggerImpl) AddContext(err error, context ...any) error {
 			StackTrace: m.stackTracer.GetStackTrace(),
 			Context:    map[string]any{},
 		}
-		m.addToContextField(context, newDeepStackError)
+		m.addToContextField(sanitizedContext, newDeepStackError)
 		return newDeepStackError
 	}
 }
 
-func (m *DeepStackLoggerImpl) addToContextField(context []any, deepStackError *DeepStackError) {
-	for i := 0; i+1 < len(context); i += 2 {
-		if key, ok := context[i].(string); ok {
-			deepStackError.Context[key] = context[i+1]
-		} else {
-			m.logger.LogWarning(invalidKeyTypeMessage, actualTypeField, reflect.TypeOf(context[i]).String())
-		}
+func (m *DeepStackLoggerImpl) addToContextField(sanitizedContext map[string]any, deepStackError *DeepStackError) {
+	for key, value := range sanitizedContext {
+		deepStackError.Context[key] = value
 	}
 }
