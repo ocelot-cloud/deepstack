@@ -4,13 +4,16 @@ import (
 	"log/slog"
 	"os"
 	"reflect"
+	"strings"
 
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 const (
 	actualTypeField = "actual_type"
+	keyField        = "key"
 
+	emptySpacesInKeyMessage      = "spaces in keys are not allowed"
 	invalidKeyTypeMessage        = "invalid key type in log message, must always be string"
 	invalidErrorTypeMessage      = "invalid error type in log message, must be *DeepStackError"
 	oddKeyValuePairNumberMessage = "odd number of key-value pairs in log message, must always be even"
@@ -91,6 +94,10 @@ func (m *DeepStackLoggerImpl) sanitizeContext(context []any) map[string]any {
 	result := make(map[string]any)
 	for i := 0; i+1 < len(context); i += 2 {
 		if key, ok := context[i].(string); ok {
+			if strings.Contains(key, " ") {
+				m.logger.LogWarning(emptySpacesInKeyMessage, keyField, key)
+				continue
+			}
 			result[key] = context[i+1]
 		} else {
 			m.logger.LogWarning(invalidKeyTypeMessage, actualTypeField, reflect.TypeOf(context[i]).String())

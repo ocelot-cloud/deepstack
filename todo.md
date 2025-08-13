@@ -1,7 +1,5 @@
 TODO
 
-* add warning when a key contains spaces or maybe only allow specific sign like letters, numbers and underscores
-
 * in console logs, there is at the moment just the file name, but I want also the relative path (duplications make the IDE not recognize the file when clicking on it)
 * odd logs sometimes in cloud:
 
@@ -25,4 +23,3 @@ url_path=/api/settings/maintenance/read
   * realization idea: add the option to define global attributes, which are contained in every log message; they are contained in the log file, but not in console to not clutter it
   * related todo: "add the possibility to create a random ID when application starts so that I can group donated logs by deployed instances -> maybe the feature above could be combined with this; this is one global ID for whole application, while feature above needs a unique ID for each operation usually triggered by a user request"
 * feature: a function like AddContext("unique_operation_id") that takes values from the context.Context and adds it as field to the structured log. Not sure if that should be printed to console? but definitely should be printed to the log file; if the value is empty, I should maybe do a warning log, as this is a hint that I forgot to set the value in the context.Context somewhere in the code (maybe add a flag in the NewDeepStackLogger to dis-/enable this feature?)
-* Add a warning when 

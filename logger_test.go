@@ -62,7 +62,7 @@ func TestLogInvalidKeyType(t *testing.T) {
 	m.EXPECT().ShouldLogBeSkipped("info").Return(false)
 	m.EXPECT().LogWarning(
 		invalidKeyTypeMessage,
-		[]interface{}{actualTypeField, reflect.TypeOf(0).String()},
+		[]any{actualTypeField, reflect.TypeOf(0).String()},
 	)
 	m.EXPECT().LogRecord(expectedLogRecord)
 	l.log("info", "msg", 123, "value1", "key2", "value2")
@@ -141,18 +141,33 @@ func TestLogOddNumberOfKeyValues(t *testing.T) {
 func TestAddContextOddNumberOfKeyValues(t *testing.T) {
 	logger, backendMock, _ := newLogger(t)
 	backendMock.EXPECT().LogWarning(oddKeyValuePairNumberMessage)
-	deepstackError := &DeepStackError{
-		Message:    "some-error",
-		StackTrace: "some-stack-trace",
-		Context:    map[string]any{},
-	}
-	enrichedError := logger.AddContext(deepstackError, "key1", "value1", "key2")
+	enrichedError := logger.AddContext(getSampleDeeptstackError(), "key1", "value1", "key2")
 	backendMock.AssertExpectations(t)
 
 	enrichedDeepStackError, ok := enrichedError.(*DeepStackError)
 	assert.True(t, ok)
 	assert.Equal(t, 1, len(enrichedDeepStackError.Context))
 	assert.Equal(t, "value1", enrichedDeepStackError.Context["key1"])
+}
+
+func getSampleDeeptstackError() *DeepStackError {
+	deepstackError := &DeepStackError{
+		Message:    "some-error",
+		StackTrace: "some-stack-trace",
+		Context:    map[string]any{},
+	}
+	return deepstackError
+}
+
+func TestEmptyKeyWarning(t *testing.T) {
+	logger, backendMock, _ := newLogger(t)
+	backendMock.EXPECT().LogWarning(emptySpacesInKeyMessage, []any{"key", "key 1"})
+	enrichedError := logger.AddContext(getSampleDeeptstackError(), "key 1", "value1")
+	backendMock.AssertExpectations(t)
+
+	enrichedDeepStackError, ok := enrichedError.(*DeepStackError)
+	assert.True(t, ok)
+	assert.Equal(t, 0, len(enrichedDeepStackError.Context))
 }
 
 // TODO warning when adding a context field that already exists
