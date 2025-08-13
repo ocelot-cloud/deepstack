@@ -9,6 +9,8 @@ import (
 )
 
 const (
+	actualTypeField = "actual_type"
+
 	invalidKeyTypeMessage        = "invalid key type in log message, must always be string"
 	invalidErrorTypeMessage      = "invalid error type in log message, must be *DeepStackError"
 	oddKeyValuePairNumberMessage = "odd number of key-value pairs in log message, must always be even"
@@ -73,8 +75,7 @@ func (m *DeepStackLoggerImpl) log(level string, msg string, keyValuePairs ...any
 	for i := 0; i+1 < len(keyValuePairs); i += 2 {
 		key, ok := keyValuePairs[i].(string)
 		if !ok {
-			// TODO is this covered? the "type" should have caused an error in test suite, as the key name should be "actual_type"
-			m.logger.LogWarning(invalidKeyTypeMessage, "type", reflect.TypeOf(keyValuePairs[i]).String())
+			m.logger.LogWarning(invalidKeyTypeMessage, actualTypeField, reflect.TypeOf(keyValuePairs[i]).String())
 			continue // TODO can be removed without causing tests to fail, fix this
 		}
 
@@ -151,7 +152,7 @@ func (m *DeepStackLoggerImpl) addToContextField(context []any, deepStackError *D
 		if key, ok := context[i].(string); ok {
 			deepStackError.Context[key] = context[i+1]
 		} else {
-			m.logger.LogWarning(invalidKeyTypeMessage, "actual_type", reflect.TypeOf(context[i]).String())
+			m.logger.LogWarning(invalidKeyTypeMessage, actualTypeField, reflect.TypeOf(context[i]).String())
 		}
 	}
 }

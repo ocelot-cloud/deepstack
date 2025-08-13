@@ -62,7 +62,7 @@ func TestLogInvalidKeyType(t *testing.T) {
 	m.EXPECT().ShouldLogBeSkipped("info").Return(false)
 	m.EXPECT().LogWarning(
 		invalidKeyTypeMessage,
-		[]interface{}{"type", reflect.TypeOf(0).String()},
+		[]interface{}{actualTypeField, reflect.TypeOf(0).String()},
 	)
 	m.EXPECT().LogRecord(expectedLogRecord)
 	l.log("info", "msg", 123, "value1", "key2", "value2")
