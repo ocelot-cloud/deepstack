@@ -15,6 +15,7 @@ type LoggingBackend interface {
 	LogWarning(message string, kv ...any)
 }
 
+// TODO add tests, maybe also dependencies, hide slog dependency somehow?
 type LoggingBackendImpl struct {
 	slog *slog.Logger
 }

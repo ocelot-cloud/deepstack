@@ -43,22 +43,22 @@ func (h multiHandler) WithGroup(name string) slog.Handler {
 	return out
 }
 
-// TODO add tests to console handler
+// TODO add tests to console handler, consider implementing a dependency for mocking
 
-type consoleHandler struct {
+type ConsoleHandler struct {
 	w     io.Writer
 	opts  *slog.HandlerOptions
 	attrs []slog.Attr
 }
 
-func (s consoleHandler) Enabled(_ context.Context, lvl slog.Level) bool {
+func (s ConsoleHandler) Enabled(_ context.Context, lvl slog.Level) bool {
 	if s.opts != nil && s.opts.Level != nil {
 		return lvl >= s.opts.Level.Level()
 	}
 	return true
 }
 
-func (s consoleHandler) Handle(_ context.Context, r slog.Record) error {
+func (s ConsoleHandler) Handle(_ context.Context, r slog.Record) error {
 	frame, _ := runtime.CallersFrames([]uintptr{r.PC}).Next()
 	fileLine := fmt.Sprintf("%s:%d", filepath.Base(frame.File), frame.Line)
 	var recAttrs []slog.Attr
@@ -78,10 +78,10 @@ func (s consoleHandler) Handle(_ context.Context, r slog.Record) error {
 	return nil
 }
 
-func (s consoleHandler) WithAttrs(a []slog.Attr) slog.Handler {
+func (s ConsoleHandler) WithAttrs(a []slog.Attr) slog.Handler {
 	n := s
 	n.attrs = append(append([]slog.Attr{}, s.attrs...), a...)
 	return n
 }
 
-func (s consoleHandler) WithGroup(string) slog.Handler { return s }
+func (s ConsoleHandler) WithGroup(string) slog.Handler { return s }

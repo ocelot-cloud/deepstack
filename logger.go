@@ -1,7 +1,6 @@
 package deepstack
 
 import (
-	"io"
 	"log/slog"
 	"os"
 	"reflect"
@@ -17,26 +16,23 @@ type DeepStackLogger interface {
 	NewError(msg string, kv ...any) error
 }
 
-func getSlogLogger(logLevel string, dst io.Writer) *slog.Logger {
-	// TODO nil should be rejected?
-	if dst == nil {
-		dst = os.Stdout
-	}
+func NewConsoleHandler(opts *slog.HandlerOptions) *ConsoleHandler {
+	return &ConsoleHandler{w: os.Stdout, opts: opts}
+}
 
-	// TODO this block should be contained in the constructor block for the production log file writer
+func NewFileHandler(opts *slog.HandlerOptions) *slog.JSONHandler {
 	logDir := "data/logs"
 	_ = os.MkdirAll(logDir, 0700)
 	logFile := &lumberjack.Logger{Filename: logDir + "/app.log", MaxSize: 100, MaxAge: 30, Compress: true}
-	opts := &slog.HandlerOptions{AddSource: true, Level: convertToSlogLevel(logLevel)}
 	fileHandler := slog.NewJSONHandler(logFile, opts)
-
-	consoleHandlerObj := consoleHandler{w: dst, opts: opts}
-	logger := slog.New(multiHandler{fileHandler, consoleHandlerObj})
-	return logger
+	return fileHandler
 }
 
 func NewDeepStackLogger(logLevel string, enableWarningsForNonDeepStackErrors bool) DeepStackLogger {
-	slogLogger := getSlogLogger(logLevel, os.Stdout)
+	opts := &slog.HandlerOptions{AddSource: true, Level: convertToSlogLevel(logLevel)}
+	fileHandler := NewFileHandler(opts)
+	consoleHandlerObj := NewConsoleHandler(opts)
+	slogLogger := slog.New(multiHandler{fileHandler, consoleHandlerObj})
 	return &DeepStackLoggerImpl{
 		logger:               &LoggingBackendImpl{slog: slogLogger},
 		enableMisuseWarnings: enableWarningsForNonDeepStackErrors,
@@ -94,6 +90,7 @@ func (m *DeepStackLoggerImpl) handleErrorField(record *Record, key string, value
 		for contextKey, contextValue := range detailedError.Context {
 			record.AddAttrs(contextKey, contextValue)
 		}
+		// TODO I think these two are not asserted yet, right?
 		record.AddAttrs("stack_trace", detailedError.StackTrace)
 		record.AddAttrs("error_cause", detailedError.Message)
 		return detailedError.StackTrace
@@ -120,7 +117,7 @@ func (m *DeepStackLoggerImpl) NewError(msg string, kv ...any) error {
 
 	return &DeepStackError{
 		Message:    msg,
-		StackTrace: m.stackTracer.GetStackTrace(), // TODO test
+		StackTrace: m.stackTracer.GetStackTrace(),
 		Context:    contextMap,
 	}
 }
@@ -136,7 +133,7 @@ func (m *DeepStackLoggerImpl) AddContext(err error, context ...any) error {
 		}
 		deepStackError := &DeepStackError{
 			Message:    err.Error(),
-			StackTrace: m.stackTracer.GetStackTrace(), // TODO test
+			StackTrace: m.stackTracer.GetStackTrace(),
 			Context:    map[string]any{},
 		}
 		m.addToContextField(context, deepStackError)
@@ -149,6 +146,7 @@ func (m *DeepStackLoggerImpl) addToContextField(context []any, workError *DeepSt
 		if key, ok := context[i].(string); ok {
 			workError.Context[key] = context[i+1]
 		} else {
+			// TODO this is not tested yet
 			m.logger.LogWarning("invalid key type in log message, must always be string", "type", reflect.TypeOf(context[i]).String())
 		}
 	}
