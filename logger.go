@@ -61,8 +61,6 @@ func (m *DeepStackLoggerImpl) log(level string, msg string, keyValuePairs ...any
 		return
 	}
 	if len(keyValuePairs)%2 != 0 {
-		// TODO cover by tests
-		// TODO do this also for adding context
 		m.logger.LogWarning(oddKeyValuePairNumberMessage)
 	}
 
@@ -129,6 +127,9 @@ func (m *DeepStackLoggerImpl) NewError(msg string, kv ...any) error {
 }
 
 func (m *DeepStackLoggerImpl) AddContext(err error, context ...any) error {
+	if len(context)%2 != 0 {
+		m.logger.LogWarning(oddKeyValuePairNumberMessage)
+	}
 	deepStackError, ok := err.(*DeepStackError)
 	if ok {
 		m.addToContextField(context, deepStackError)

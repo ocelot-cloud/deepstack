@@ -1,6 +1,5 @@
 TODO
 
-* log a warning, when an odd number of key value args is delivered; it must always be even to form pairs
 * add warning when a key contains spaces or maybe only allow specific sign like letters, numbers and underscores
 
 * in console logs, there is at the moment just the file name, but I want also the relative path (duplications make the IDE not recognize the file when clicking on it)

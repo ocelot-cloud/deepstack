@@ -129,7 +129,7 @@ func TestAddContextDeepStackError_DisabledWarnings(t *testing.T) {
 	stackTracerMock.AssertExpectations(t)
 }
 
-func TestOddNumberOfKeyValues(t *testing.T) {
+func TestLogOddNumberOfKeyValues(t *testing.T) {
 	logger, backendMock, _ := newLogger(t)
 	backendMock.EXPECT().ShouldLogBeSkipped("info").Return(false)
 	backendMock.EXPECT().LogWarning(oddKeyValuePairNumberMessage)
@@ -137,3 +137,22 @@ func TestOddNumberOfKeyValues(t *testing.T) {
 	logger.Info("some-message", "key1", "value1", "key2")
 	backendMock.AssertExpectations(t)
 }
+
+func TestAddContextOddNumberOfKeyValues(t *testing.T) {
+	logger, backendMock, _ := newLogger(t)
+	backendMock.EXPECT().LogWarning(oddKeyValuePairNumberMessage)
+	deepstackError := &DeepStackError{
+		Message:    "some-error",
+		StackTrace: "some-stack-trace",
+		Context:    map[string]any{},
+	}
+	enrichedError := logger.AddContext(deepstackError, "key1", "value1", "key2")
+	backendMock.AssertExpectations(t)
+
+	enrichedDeepStackError, ok := enrichedError.(*DeepStackError)
+	assert.True(t, ok)
+	assert.Equal(t, 1, len(enrichedDeepStackError.Context))
+	assert.Equal(t, "value1", enrichedDeepStackError.Context["key1"])
+}
+
+// TODO warning when adding a context field that already exists
