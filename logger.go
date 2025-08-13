@@ -136,13 +136,13 @@ func (m *DeepStackLoggerImpl) AddContext(err error, context ...any) error {
 		return deepStackError
 	} else {
 		m.logger.LogWarning(invalidErrorTypeMessage)
-		deepStackError := &DeepStackError{
+		newDeepStackError := &DeepStackError{
 			Message:    err.Error(),
 			StackTrace: m.stackTracer.GetStackTrace(),
 			Context:    map[string]any{},
 		}
-		m.addToContextField(context, deepStackError)
-		return deepStackError
+		m.addToContextField(context, newDeepStackError)
+		return newDeepStackError
 	}
 }
 
