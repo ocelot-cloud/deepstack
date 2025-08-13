@@ -1,11 +1,9 @@
 TODO
 
-* extensibility: I want some kind of list like []LoggingHandler; which is an interface with function like LogRecord(record *Record), but so that the record already contains all fields (including source and timestamp) -> we can register multiple handlers via public API like ConsoleHandler, LogFileHandler, NetworkHandler, etc. so that it is easy to add new possibilities to process the log records; can I reuse slog or should I replace it?
-* the usage of slog feels a little hacky. Maybe I better replace it with custom logic
-* in console logs, there is at the moment just the file name, but I want also the relative path (duplications make the IDE not recognize the file when clicking on it)
 * log a warning, when an odd number of key value args is delivered; it must always be even to form pairs
-* warning when a key contain spaces? or maybe only allow specific sign like letters, numbers and underscores
-* low level error is swallowed at the moment, when ErrorField log; should there be a high level error message? if yes, then low level error message could be a field like "low_level_error" or so
+* add warning when a key contains spaces or maybe only allow specific sign like letters, numbers and underscores
+
+* in console logs, there is at the moment just the file name, but I want also the relative path (duplications make the IDE not recognize the file when clicking on it)
 * odd logs sometimes in cloud:
 
 2025-08-02 13:44:37.528 DEBUG security_api.go:41 "Request path"2025-08-02 13:44:37.529 DEBUG security_api.go:46 "request to ocelot-cloud API is called"
