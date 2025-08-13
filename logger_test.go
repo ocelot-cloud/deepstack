@@ -135,3 +135,21 @@ func TestAddContextDeepStackError(t *testing.T) {
 
 	backendMock.AssertExpectations(t)
 }
+
+func TestAddContextDeepStackError_DisabledWarnings(t *testing.T) {
+	logger, backendMock, stackTracerMock := newLogger(t, true)
+	stackTracerMock.EXPECT().GetStackTrace().Return("some-stack-trace")
+	inputError := logger.NewError("some-error")
+
+	backendMock.EXPECT().LogWarning("invalid key type in log message, must always be string", []any{"actual_type", "int"})
+	outputError := logger.AddContext(inputError, 1234, "key1", "key2", "value2")
+
+	outputDeepstackError, ok := outputError.(*DeepStackError)
+	assert.True(t, ok)
+	assert.Equal(t, "some-error", outputDeepstackError.Message)
+	assert.Equal(t, 1, len(outputDeepstackError.Context))
+	assert.Equal(t, "value2", outputDeepstackError.Context["key2"])
+	assert.Equal(t, "some-stack-trace", outputDeepstackError.StackTrace)
+	backendMock.AssertExpectations(t)
+	stackTracerMock.AssertExpectations(t)
+}

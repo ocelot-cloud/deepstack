@@ -90,7 +90,6 @@ func (m *DeepStackLoggerImpl) handleErrorField(record *Record, key string, value
 		for contextKey, contextValue := range detailedError.Context {
 			record.AddAttrs(contextKey, contextValue)
 		}
-		// TODO I think these two are not asserted yet, right?
 		record.AddAttrs("stack_trace", detailedError.StackTrace)
 		record.AddAttrs("error_cause", detailedError.Message)
 		return detailedError.StackTrace
@@ -128,6 +127,7 @@ func (m *DeepStackLoggerImpl) AddContext(err error, context ...any) error {
 		m.addToContextField(context, workError)
 		return workError
 	} else {
+		// TODO get rid of this, wa want these warnings always enabled
 		if m.enableMisuseWarnings {
 			m.logger.LogWarning("invalid error type in log message, must be *DeepStackError")
 		}
@@ -141,13 +141,13 @@ func (m *DeepStackLoggerImpl) AddContext(err error, context ...any) error {
 	}
 }
 
-func (m *DeepStackLoggerImpl) addToContextField(context []any, workError *DeepStackError) {
+func (m *DeepStackLoggerImpl) addToContextField(context []any, deepStackError *DeepStackError) {
 	for i := 0; i+1 < len(context); i += 2 {
 		if key, ok := context[i].(string); ok {
-			workError.Context[key] = context[i+1]
+			deepStackError.Context[key] = context[i+1]
 		} else {
 			// TODO this is not tested yet
-			m.logger.LogWarning("invalid key type in log message, must always be string", "type", reflect.TypeOf(context[i]).String())
+			m.logger.LogWarning("invalid key type in log message, must always be string", "actual_type", reflect.TypeOf(context[i]).String())
 		}
 	}
 }
