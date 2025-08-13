@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"runtime"
 	"strings"
 )
 
@@ -54,19 +53,4 @@ type Record struct {
 
 func (r *Record) AddAttrs(key string, value any) {
 	r.attributes[key] = value
-}
-
-func printStackTrace() string {
-	pcs := make([]uintptr, 32)
-	n := runtime.Callers(3, pcs)
-	frames := runtime.CallersFrames(pcs[:n])
-	var b strings.Builder
-	for {
-		f, more := frames.Next()
-		fmt.Fprintf(&b, "%s\n\t%s:%d\n", f.Function, f.File, f.Line)
-		if !more {
-			break
-		}
-	}
-	return b.String()
 }

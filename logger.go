@@ -54,6 +54,7 @@ type DeepStackLoggerImpl struct {
 	logger LoggingBackend
 	// if enabled, when the framework is not used correctly, a warning is logged
 	enableMisuseWarnings bool
+	stackTracer          StackTracer
 }
 
 func (m *DeepStackLoggerImpl) log(level string, msg string, keyValuePairs ...any) {
@@ -119,7 +120,7 @@ func (m *DeepStackLoggerImpl) NewError(msg string, kv ...any) error {
 
 	return &DeepStackError{
 		Message:    msg,
-		StackTrace: printStackTrace(), // TODO stack trace should be inject; test whether value was handled correctly
+		StackTrace: m.stackTracer.GetStackTrace(), // TODO test
 		Context:    contextMap,
 	}
 }
@@ -135,7 +136,7 @@ func (m *DeepStackLoggerImpl) AddContext(err error, context ...any) error {
 		}
 		deepStackError := &DeepStackError{
 			Message:    err.Error(),
-			StackTrace: printStackTrace(),
+			StackTrace: m.stackTracer.GetStackTrace(), // TODO test
 			Context:    map[string]any{},
 		}
 		m.addToContextField(context, deepStackError)

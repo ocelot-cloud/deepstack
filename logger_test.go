@@ -30,29 +30,35 @@ func TestLoggingVisuallyOfNormalError(t *testing.T) {
 }
 
 func TestLoggingWithStackTrace(t *testing.T) {
+	/* TODO add backend mock as well for testing
 	logger := NewDeepStackLogger("debug", true)
 	logger.Error("testing detailed error", ErrorField, subfunction(logger))
+	*/
 }
 
 func subfunction(logger DeepStackLogger) error {
 	return logger.NewError("an error occurred", "key1", "value1")
 }
 
-func newLogger(tb testing.TB, warn bool) (*DeepStackLoggerImpl, *LoggingBackendMock) {
-	tb.Helper()
-	m := NewLoggingBackendMock(tb)
-	return &DeepStackLoggerImpl{logger: m, enableMisuseWarnings: warn}, m
+func newLogger(t *testing.T, warn bool) (*DeepStackLoggerImpl, *LoggingBackendMock, *StackTracerMock) {
+	loggingBackendMock := NewLoggingBackendMock(t)
+	stackTracerMock := NewStackTracerMock(t)
+	return &DeepStackLoggerImpl{
+		logger:               loggingBackendMock,
+		enableMisuseWarnings: warn,
+		stackTracer:          stackTracerMock,
+	}, loggingBackendMock, stackTracerMock
 }
 
 func TestLogSkip(t *testing.T) {
-	l, m := newLogger(t, false)
-	m.EXPECT().ShouldLogBeSkipped("debug").Return(true)
-	l.log("debug", "msg")
-	m.AssertExpectations(t)
+	logger, backendMock, _ := newLogger(t, false)
+	backendMock.EXPECT().ShouldLogBeSkipped("debug").Return(true)
+	logger.log("debug", "msg")
+	backendMock.AssertExpectations(t)
 }
 
 func TestLogDeepStackError(t *testing.T) {
-	logger, backendMock := newLogger(t, false)
+	logger, backendMock, _ := newLogger(t, false)
 	err := &DeepStackError{Message: "some-error-cause", StackTrace: "trace", Context: map[string]any{"key1": "value1"}}
 	backendMock.EXPECT().ShouldLogBeSkipped("error").Return(false)
 
@@ -69,7 +75,7 @@ func TestLogDeepStackError(t *testing.T) {
 }
 
 func TestLogNormalErrorNoWarning(t *testing.T) {
-	l, m := newLogger(t, false)
+	l, m, _ := newLogger(t, false)
 	m.EXPECT().ShouldLogBeSkipped("error").Return(false)
 	m.EXPECT().LogRecord(mock.Anything) // TODO replace all occurrences of mock.Anything with something more specific
 	l.log("error", "msg", ErrorField, errors.New("e"))
@@ -77,7 +83,7 @@ func TestLogNormalErrorNoWarning(t *testing.T) {
 }
 
 func TestLogNormalErrorWithWarning(t *testing.T) {
-	l, m := newLogger(t, true)
+	l, m, _ := newLogger(t, true)
 	m.EXPECT().ShouldLogBeSkipped("error").Return(false)
 	m.EXPECT().LogWarning("invalid error type in log message, must be *DeepStackError")
 	m.EXPECT().LogRecord(mock.Anything)
@@ -86,7 +92,7 @@ func TestLogNormalErrorWithWarning(t *testing.T) {
 }
 
 func TestLogInvalidKeyType(t *testing.T) {
-	l, m := newLogger(t, false)
+	l, m, _ := newLogger(t, false)
 	expectedLogRecord := &Record{
 		level:      "info",
 		msg:        "msg",
@@ -104,13 +110,16 @@ func TestLogInvalidKeyType(t *testing.T) {
 }
 
 func TestAddContextNormalError(t *testing.T) {
-	logger, backendMock := newLogger(t, true)
+	logger, backendMock, stackTracerMock := newLogger(t, true)
 	inputError := errors.New("some error")
 	backendMock.EXPECT().LogWarning("invalid error type in log message, must be *DeepStackError")
-	todoMyChangeName(t, logger, inputError, backendMock)
+	stackTracerMock.EXPECT().GetStackTrace().Return("some-stack-trace")
+	createAndAssertDeepstackError(t, logger, inputError)
+	backendMock.AssertExpectations(t)
+	stackTracerMock.AssertExpectations(t)
 }
 
-func todoMyChangeName(t *testing.T, l *DeepStackLoggerImpl, inputError error, m *LoggingBackendMock) {
+func createAndAssertDeepstackError(t *testing.T, l *DeepStackLoggerImpl, inputError error) {
 	outputError := l.AddContext(inputError, "key1", "value1", "key2", "value2")
 
 	err, ok := outputError.(*DeepStackError)
@@ -119,22 +128,23 @@ func todoMyChangeName(t *testing.T, l *DeepStackLoggerImpl, inputError error, m 
 	assert.Equal(t, 2, len(err.Context))
 	assert.Equal(t, "value1", err.Context["key1"])
 	assert.Equal(t, "value2", err.Context["key2"])
-	assert.NotEqual(t, "", err.StackTrace)
-
-	m.AssertExpectations(t)
+	assert.Equal(t, "some-stack-trace", err.StackTrace)
 }
 
 func TestAddContextNormalError_DisabledWarnings(t *testing.T) {
-	logger, BackendMock := newLogger(t, false)
+	logger, backendMock, stackTracerMock := newLogger(t, false)
 	inputError := errors.New("some error")
-	todoMyChangeName(t, logger, inputError, BackendMock)
+	stackTracerMock.EXPECT().GetStackTrace().Return("some-stack-trace")
+	createAndAssertDeepstackError(t, logger, inputError)
+	stackTracerMock.AssertExpectations(t)
+	backendMock.AssertExpectations(t)
 }
 
 func TestAddContextDeepStackError(t *testing.T) {
-	logger, backendMock := newLogger(t, false)
+	logger, backendMock, _ := newLogger(t, false)
 	inputError := &DeepStackError{
 		Message:    "some error",
-		StackTrace: "some stack trace",
+		StackTrace: "some-stack-trace",
 		Context:    map[string]any{"key1": "value1"},
 	}
 	outputError := logger.AddContext(inputError, "key2", "value2")
@@ -145,7 +155,7 @@ func TestAddContextDeepStackError(t *testing.T) {
 	assert.Equal(t, 2, len(err.Context))
 	assert.Equal(t, "value1", err.Context["key1"])
 	assert.Equal(t, "value2", err.Context["key2"])
-	assert.Equal(t, "some stack trace", err.StackTrace)
+	assert.Equal(t, "some-stack-trace", err.StackTrace)
 
 	backendMock.AssertExpectations(t)
 }

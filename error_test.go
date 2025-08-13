@@ -1,12 +1,19 @@
 package deepstack
 
 import (
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestErrorToString(t *testing.T) {
-	logger := NewDeepStackLogger("debug", false)
+	stackTracerMock := NewStackTracerMock(t)
+	logger := DeepStackLoggerImpl{
+		logger:               nil,
+		enableMisuseWarnings: false,
+		stackTracer:          stackTracerMock,
+	}
+	stackTracerMock.EXPECT().GetStackTrace().Return("some-stack-trace")
 	testError := logger.NewError("an error occurred", "key1", "value1")
 
 	detailedTestError, ok := testError.(*DeepStackError)
@@ -14,7 +21,8 @@ func TestErrorToString(t *testing.T) {
 	assert.Equal(t, "an error occurred", detailedTestError.Message)
 	assert.Equal(t, 1, len(detailedTestError.Context))
 	assert.Equal(t, "value1", detailedTestError.Context["key1"])
-	assert.NotEqual(t, "", detailedTestError.StackTrace)
+	assert.Equal(t, "some-stack-trace", detailedTestError.StackTrace)
 
 	assert.Equal(t, "an error occurred", testError.Error())
+	stackTracerMock.AssertExpectations(t)
 }
