@@ -9,8 +9,9 @@ import (
 )
 
 const (
-	invalidKeyTypeMessage   = "invalid key type in log message, must always be string"
-	invalidErrorTypeMessage = "invalid error type in log message, must be *DeepStackError"
+	invalidKeyTypeMessage        = "invalid key type in log message, must always be string"
+	invalidErrorTypeMessage      = "invalid error type in log message, must be *DeepStackError"
+	oddKeyValuePairNumberMessage = "odd number of key-value pairs in log message, must always be even"
 )
 
 type DeepStackLogger interface {
@@ -59,6 +60,11 @@ func (m *DeepStackLoggerImpl) log(level string, msg string, keyValuePairs ...any
 	if m.logger.ShouldLogBeSkipped(level) {
 		return
 	}
+	if len(keyValuePairs)%2 != 0 {
+		// TODO cover by tests
+		// TODO do this also for adding context
+		m.logger.LogWarning(oddKeyValuePairNumberMessage)
+	}
 
 	record := &Record{
 		level:      level,
@@ -69,13 +75,14 @@ func (m *DeepStackLoggerImpl) log(level string, msg string, keyValuePairs ...any
 	for i := 0; i+1 < len(keyValuePairs); i += 2 {
 		key, ok := keyValuePairs[i].(string)
 		if !ok {
+			// TODO is this covered? the "type" should have caused an error in test suite, as the key name should be "actual_type"
 			m.logger.LogWarning(invalidKeyTypeMessage, "type", reflect.TypeOf(keyValuePairs[i]).String())
 			continue // TODO can be removed without causing tests to fail, fix this
 		}
 
 		value := keyValuePairs[i+1]
 		if key == ErrorField {
-			stackTrace = m.handleErrorField(record, key, value)
+			stackTrace = m.appendStackErrorToRecord(record, key, value)
 		} else {
 			record.AddAttrs(key, value)
 		}
@@ -86,7 +93,7 @@ func (m *DeepStackLoggerImpl) log(level string, msg string, keyValuePairs ...any
 	}
 }
 
-func (m *DeepStackLoggerImpl) handleErrorField(record *Record, key string, value any) string {
+func (m *DeepStackLoggerImpl) appendStackErrorToRecord(record *Record, key string, value any) string {
 	detailedError, ok := value.(*DeepStackError)
 	if ok {
 		for contextKey, contextValue := range detailedError.Context {

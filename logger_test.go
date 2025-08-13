@@ -128,3 +128,12 @@ func TestAddContextDeepStackError_DisabledWarnings(t *testing.T) {
 	backendMock.AssertExpectations(t)
 	stackTracerMock.AssertExpectations(t)
 }
+
+func TestOddNumberOfKeyValues(t *testing.T) {
+	logger, backendMock, _ := newLogger(t)
+	backendMock.EXPECT().ShouldLogBeSkipped("info").Return(false)
+	backendMock.EXPECT().LogWarning(oddKeyValuePairNumberMessage)
+	backendMock.EXPECT().LogRecord(mock.Anything)
+	logger.Info("some-message", "key1", "value1", "key2")
+	backendMock.AssertExpectations(t)
+}
