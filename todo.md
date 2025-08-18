@@ -1,5 +1,9 @@
 TODO
 
+* add DeepStackError function "Unwrap() error" so that "join" function works?
+
+* enable to log entire data structures, maybe reuse the slog.Group feature?
+
 * in console logs, there is at the moment just the file name, but I want also the relative path (duplications make the IDE not recognize the file when clicking on it) -> should work, to be tested
 
 * odd logs sometimes in cloud:
