@@ -66,5 +66,4 @@ Please read the [Community](https://ocelot-cloud.org/docs/community/) articles f
 
 ### License
 
-This project is licensed under a permissive open source license, the [0BSD License](https://opensource.org/license/0bsd/).  
-See the [LICENSE](LICENSE) file for details.
+This project is licensed under a permissive open source license, the [0BSD License](https://opensource.org/license/0bsd/). See the [LICENSE](LICENSE) file for details.
