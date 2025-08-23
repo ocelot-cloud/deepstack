@@ -45,7 +45,8 @@ func NewDeepStackLogger(logLevel string) DeepStackLogger {
 	consoleHandlerObj := NewConsoleHandler(opts)
 	slogLogger := slog.New(multiHandler{fileHandler, consoleHandlerObj})
 	return &DeepStackLoggerImpl{
-		logger: &LoggingBackendImpl{slog: slogLogger},
+		logger:      &LoggingBackendImpl{slog: slogLogger},
+		stackTracer: &StackTracerImpl{},
 	}
 }
 
