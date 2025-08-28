@@ -5,7 +5,9 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
@@ -164,5 +166,16 @@ func (m *DeepStackLoggerImpl) AddContext(err error, context ...any) error {
 func (m *DeepStackLoggerImpl) addToContextField(sanitizedContext map[string]any, deepStackError *DeepStackError) {
 	for key, value := range sanitizedContext {
 		deepStackError.Context[key] = value
+	}
+}
+
+func AssertDeepStackError(t *testing.T, err error, expectedMessage string, expectedContext ...any) {
+	deeptstackError, ok := err.(*DeepStackError)
+	assert.Equal(t, expectedMessage, deeptstackError.Message)
+	assert.True(t, ok)
+	for i := 0; i < len(expectedContext); i += 2 {
+		actual := deeptstackError.Context[expectedContext[i].(string)]
+		expected := expectedContext[i+1]
+		assert.Equal(t, expected, actual)
 	}
 }
