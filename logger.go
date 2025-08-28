@@ -25,6 +25,7 @@ type DeepStackLogger interface {
 	Warn(msg string, context ...any)
 	Error(msg string, context ...any)
 	NewError(msg string, context ...any) error
+	AddContext(err error, context ...any) error
 }
 
 func NewConsoleHandler(opts *slog.HandlerOptions) *ConsoleHandler {
