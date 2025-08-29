@@ -1,5 +1,7 @@
 package deepstack
 
+import "fmt"
+
 type DeepStackError struct {
 	Message    string
 	StackTrace string
@@ -7,5 +9,5 @@ type DeepStackError struct {
 }
 
 func (d *DeepStackError) Error() string {
-	return d.Message
+	return fmt.Sprintf("message: %s; context: %s; stack: %s", d.Message, d.Context, d.StackTrace)
 }
