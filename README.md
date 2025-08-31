@@ -42,7 +42,7 @@ func main() {
 Output:
 
 ```text
-time=2025-07-21T00:15:00.000+02:00 level=INFO source=main.go:29 msg="user logged in" name=john age=23
+2025-08-31 16:58:52.135 INFO main.go:10 "user logged in" age=23 name=john
 ```
 
 ### Error Management
