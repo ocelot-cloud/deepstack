@@ -12,11 +12,11 @@ import (
 
 var workDir = getWorkDir()
 
-type multiHandler struct{ hs []slog.Handler }
+type multiHandler struct{ handlers []slog.Handler }
 
 func (m multiHandler) Enabled(ctx context.Context, lvl slog.Level) bool {
-	for _, h := range m.hs {
-		if h.Enabled(ctx, lvl) {
+	for _, handler := range m.handlers {
+		if handler.Enabled(ctx, lvl) {
 			return true
 		}
 	}
@@ -25,8 +25,8 @@ func (m multiHandler) Enabled(ctx context.Context, lvl slog.Level) bool {
 
 func (m multiHandler) Handle(ctx context.Context, r slog.Record) error {
 	var err error
-	for _, h := range m.hs {
-		if e := h.Handle(ctx, r.Clone()); e != nil && err == nil {
+	for _, handler := range m.handlers {
+		if e := handler.Handle(ctx, r.Clone()); e != nil && err == nil {
 			err = e
 		}
 	}
@@ -34,19 +34,19 @@ func (m multiHandler) Handle(ctx context.Context, r slog.Record) error {
 }
 
 func (m multiHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
-	hs := make([]slog.Handler, len(m.hs))
-	for i, h := range m.hs {
-		hs[i] = h.WithAttrs(attrs)
+	hs := make([]slog.Handler, len(m.handlers))
+	for index, handler := range m.handlers {
+		hs[index] = handler.WithAttrs(attrs)
 	}
-	return multiHandler{hs: hs}
+	return multiHandler{handlers: hs}
 }
 
 func (m multiHandler) WithGroup(name string) slog.Handler {
-	hs := make([]slog.Handler, len(m.hs))
-	for i, h := range m.hs {
-		hs[i] = h.WithGroup(name)
+	hs := make([]slog.Handler, len(m.handlers))
+	for index, handler := range m.handlers {
+		hs[index] = handler.WithGroup(name)
 	}
-	return multiHandler{hs: hs}
+	return multiHandler{handlers: hs}
 }
 
 // TODO add tests to console handler, consider implementing a dependency for mocking

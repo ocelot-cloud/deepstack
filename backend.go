@@ -9,7 +9,7 @@ import (
 
 //go:generate mockery
 type LoggingBackend interface {
-	ShouldLogBeSkipped(level string) bool
+	ShouldLogBeSkipped(level slog.Level) bool
 	LogRecord(logRecord *Record)
 	PrintStackTrace(message string)
 	LogWarning(message string, kv ...any)
@@ -24,9 +24,8 @@ func (s *LoggingBackendImpl) PrintStackTrace(stackTrace string) {
 	println(stackTrace)
 }
 
-func (s *LoggingBackendImpl) ShouldLogBeSkipped(level string) bool {
-	slogLevel := convertToSlogLevel(level)
-	return !s.slog.Handler().Enabled(context.Background(), slogLevel)
+func (s *LoggingBackendImpl) ShouldLogBeSkipped(level slog.Level) bool {
+	return !s.slog.Handler().Enabled(context.Background(), level)
 }
 
 func (s *LoggingBackendImpl) LogRecord(logRecord *Record) {
@@ -36,8 +35,7 @@ func (s *LoggingBackendImpl) LogRecord(logRecord *Record) {
 func (s *LoggingBackendImpl) logRecord(logRecord *Record, skipFunctionTreeLevels int) {
 	var pcs [1]uintptr
 	runtime.Callers(skipFunctionTreeLevels, pcs[:])
-	slogLevel := convertToSlogLevel(logRecord.level)
-	slogRecord := slog.NewRecord(time.Now(), slogLevel, logRecord.msg, pcs[0])
+	slogRecord := slog.NewRecord(time.Now(), logRecord.level, logRecord.msg, pcs[0])
 
 	for key, value := range logRecord.attributes {
 		slogRecord.AddAttrs(slog.Any(key, value))
@@ -49,7 +47,7 @@ func (s *LoggingBackendImpl) logRecord(logRecord *Record, skipFunctionTreeLevels
 func (s *LoggingBackendImpl) LogWarning(message string, kv ...any) {
 	if len(kv) == 0 {
 		record := &Record{
-			level:      "warn",
+			level:      slog.LevelWarn,
 			msg:        message,
 			attributes: make(map[string]any),
 		}

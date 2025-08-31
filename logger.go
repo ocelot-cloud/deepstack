@@ -34,10 +34,10 @@ func NewConsoleHandler(opts *slog.HandlerOptions) *ConsoleHandler {
 	return &ConsoleHandler{w: os.Stdout, opts: opts}
 }
 
-func NewDeepStackLogger(logLevel string, additionalHandlers ...slog.Handler) DeepStackLogger {
-	opts := &slog.HandlerOptions{AddSource: true, Level: convertToSlogLevel(logLevel)}
+func NewDeepStackLogger(level slog.Level, additionalHandlers ...slog.Handler) DeepStackLogger {
+	opts := &slog.HandlerOptions{AddSource: true, Level: level}
 	consoleHandlerObject := NewConsoleHandler(opts)
-	multiHandlerObject := multiHandler{hs: append([]slog.Handler{consoleHandlerObject}, additionalHandlers...)}
+	multiHandlerObject := multiHandler{handlers: append([]slog.Handler{consoleHandlerObject}, additionalHandlers...)}
 	slogLogger := slog.New(multiHandlerObject)
 	return &DeepStackLoggerImpl{
 		logger:      &LoggingBackendImpl{slog: slogLogger},
@@ -57,7 +57,7 @@ type DeepStackLoggerImpl struct {
 	stackTracer StackTracer
 }
 
-func (m *DeepStackLoggerImpl) log(level string, msg string, context ...any) {
+func (m *DeepStackLoggerImpl) log(level slog.Level, msg string, context ...any) {
 	if m.logger.ShouldLogBeSkipped(level) {
 		return
 	}
@@ -118,10 +118,18 @@ func (m *DeepStackLoggerImpl) appendStackErrorToRecord(record *Record, key strin
 	}
 }
 
-func (m *DeepStackLoggerImpl) Debug(msg string, context ...any) { m.log("debug", msg, context...) }
-func (m *DeepStackLoggerImpl) Info(msg string, context ...any)  { m.log("info", msg, context...) }
-func (m *DeepStackLoggerImpl) Warn(msg string, context ...any)  { m.log("warn", msg, context...) }
-func (m *DeepStackLoggerImpl) Error(msg string, context ...any) { m.log("error", msg, context...) }
+func (m *DeepStackLoggerImpl) Debug(msg string, context ...any) {
+	m.log(slog.LevelDebug, msg, context...)
+}
+func (m *DeepStackLoggerImpl) Info(msg string, context ...any) {
+	m.log(slog.LevelInfo, msg, context...)
+}
+func (m *DeepStackLoggerImpl) Warn(msg string, context ...any) {
+	m.log(slog.LevelWarn, msg, context...)
+}
+func (m *DeepStackLoggerImpl) Error(msg string, context ...any) {
+	m.log(slog.LevelError, msg, context...)
+}
 func (m *DeepStackLoggerImpl) NewError(msg string, context ...any) error {
 	var contextMap = make(map[string]any)
 	for i := 0; i+1 < len(context); i += 2 {
