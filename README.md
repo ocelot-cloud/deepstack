@@ -35,7 +35,7 @@ type DeepStackError struct {
 func main() {
     logger := deepstack.NewDeepStackLogger("debug")
     // The design of the usage aimed for minimal overhead and simplicity, ideally with one-liners.
-    logger.Info("user logged in", "name", "john", "age", "23")
+    logger.Info("user logged in", "name", "john", "age", 23)
 }
 ```
 
@@ -47,7 +47,7 @@ time=2025-07-21T00:15:00.000+02:00 level=INFO source=main.go:29 msg="user logged
 
 ### Error Management
 
-Use a simple **create → propagate → handle** lifecycle with DeepStack. Stack traces are captured **once** at creation. Logging happens **once** at a boundary (e.g., HTTP handler, CLI main).
+Use a simple **create → propagate → handle** lifecycle with DeepStack. Stack traces are captured **once** at creation. Logging happens **once** at a boundary, e.g. an HTTP handler.
 
 #### 1) Error creation
 
@@ -70,12 +70,18 @@ At any stage you can add context to a DeepStack error as key–value pairs. This
 ### Full Logging Example
 
 ```go
+package main
+
+import (
+    "os/exec"
+
+    "github.com/ocelot-cloud/deepstack"
+)
+
 var logger = deepstack.NewDeepStackLogger("debug")
 
 const (
     // good practice to hard code field names for reusability
-    NameField         = "name"
-    RoleField         = "role"
     AccessDeniedField = "access_denied"
 )
 
@@ -96,18 +102,20 @@ func func1() error {
 
 // intermediate function adding context and then passing up the error
 func func2() error {
-    return deepstack.NewError("unauthorized access", AccessDeniedField, "access token not found")
+    return logger.AddContext(func3(), AccessDeniedField, "access token not found")
 }
+
+var someCondition = true
 
 // the function where the error occurs the first time
 func func3() error {
     if someCondition {
         // create own error
-        return deepstack.NewError("access token not found", AccessDeniedField, "no access token provided")
+        return logger.NewError("access token not found", AccessDeniedField, "no access token provided")
     } else {
         // wrap error from external library
         err := exec.Command("not-existing-command").Run()
-        return deepstack.NewError(err.Error())
+        return logger.NewError(err.Error())
     }
 }
 ```
@@ -115,11 +123,20 @@ func func3() error {
 Output:
 
 ```text
-time=2025-07-21T00:15:01.000+02:00 level=ERROR source=logger_test.go:29 msg="testing detailed error" access_denied="access token not found"
-deepstack.subfunction
-    /some/path/main.go:33
-deepstack.TestLoggingWithStackTrace
-    /some/path/main.go:29
+main.func3
+    /home/user/GolandProjects/playground/main.go:42
+main.func2
+    /home/user/GolandProjects/playground/main.go:33
+main.func1
+    /home/user/GolandProjects/playground/main.go:23
+main.main
+    /home/user/GolandProjects/playground/main.go:17
+runtime.main
+    /home/user/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.4.linux-amd64/src/runtime/proc.go:283
+runtime.goexit
+    /home/user/go/pkg/mod/golang.org/toolchain@v0.0.1-go1.24.4.linux-amd64/src/runtime/asm_amd64.s:1700
+
+2025-08-31 16:53:38.022 ERROR main.go:18 "resource access operation failed" error_cause="access token not found" access_denied="access token not found"
 ```
 
 ### Asserting DeepStack Errors in Tests

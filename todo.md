@@ -1,6 +1,5 @@
 TODO
 
-* update logging example in readme
 * in console handler, when any kv pair (or error_cause) has at least one space/tab within it, then make the value being displayed in quotes
 
 * add DeepStackError function "Unwrap() error" so that "join" function works?
