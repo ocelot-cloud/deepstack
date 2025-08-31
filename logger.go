@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/natefinch/lumberjack.v2"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -34,19 +34,11 @@ func NewConsoleHandler(opts *slog.HandlerOptions) *ConsoleHandler {
 	return &ConsoleHandler{w: os.Stdout, opts: opts}
 }
 
-func NewFileHandler(opts *slog.HandlerOptions) *slog.JSONHandler {
-	logDir := "data/logs"
-	_ = os.MkdirAll(logDir, 0700)
-	logFile := &lumberjack.Logger{Filename: logDir + "/app.log", MaxSize: 100, MaxAge: 30, Compress: true}
-	fileHandler := slog.NewJSONHandler(logFile, opts)
-	return fileHandler
-}
-
-func NewDeepStackLogger(logLevel string) DeepStackLogger {
+func NewDeepStackLogger(logLevel string, additionalHandlers ...slog.Handler) DeepStackLogger {
 	opts := &slog.HandlerOptions{AddSource: true, Level: convertToSlogLevel(logLevel)}
-	fileHandler := NewFileHandler(opts)
-	consoleHandlerObj := NewConsoleHandler(opts)
-	slogLogger := slog.New(multiHandler{fileHandler, consoleHandlerObj})
+	consoleHandlerObject := NewConsoleHandler(opts)
+	multiHandlerObject := multiHandler{hs: append([]slog.Handler{consoleHandlerObject}, additionalHandlers...)}
+	slogLogger := slog.New(multiHandlerObject)
 	return &DeepStackLoggerImpl{
 		logger:      &LoggingBackendImpl{slog: slogLogger},
 		stackTracer: &StackTracerImpl{},
@@ -170,12 +162,35 @@ func (m *DeepStackLoggerImpl) addToContextField(sanitizedContext map[string]any,
 }
 
 func AssertDeepStackError(t *testing.T, err error, expectedMessage string, expectedContext ...any) {
-	deeptstackError, ok := err.(*DeepStackError)
-	assert.Equal(t, expectedMessage, deeptstackError.Message)
-	assert.True(t, ok)
+	t.Helper()
+
+	require.NotNilf(t, err, "expected error %q, got nil", expectedMessage)
+
+	deepErr, ok := err.(*DeepStackError)
+	require.Truef(t, ok, "expected *DeepStackError, got %T (%v)", err, err)
+
+	assert.Equal(t, expectedMessage, deepErr.Message, "message mismatch")
+
+	require.Equalf(t, 0, len(expectedContext)%2, "expectedContext must be key/value pairs, got odd number of item: %d", len(expectedContext))
+
+	expectedKeyValuePairs := make(map[string]any, len(expectedContext)/2)
 	for i := 0; i < len(expectedContext); i += 2 {
-		actual := deeptstackError.Context[expectedContext[i].(string)]
-		expected := expectedContext[i+1]
-		assert.Equal(t, expected, actual)
+		k, ok := expectedContext[i].(string)
+		require.Truef(t, ok, "expectedContext key at index %d is not string: %T", i, expectedContext[i])
+		expectedKeyValuePairs[k] = expectedContext[i+1]
+	}
+
+	for expectedKey, expectedValue := range expectedKeyValuePairs {
+		actualValue, found := deepErr.Context[expectedKey]
+		assert.Truef(t, found, "missing context key %q (expected %#v)", expectedKey, expectedValue)
+		if found {
+			assert.Equalf(t, expectedValue, actualValue, "context value mismatch for key %q", expectedKey)
+		}
+	}
+
+	for errorContextKey, errorContextValue := range deepErr.Context {
+		if _, ok := expectedKeyValuePairs[errorContextKey]; !ok {
+			assert.Failf(t, "unexpected key found in error context", "unexpected context key %q with value %#v", errorContextKey, errorContextValue)
+		}
 	}
 }
