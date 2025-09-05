@@ -152,38 +152,27 @@ func TestStuff(t *testing.T) {
 
 ### Handlers
 
-A common pattern is that an HTTP handler receives a request, passes its data to business logic, and that may return an error. The handler is the right place to log the error and convert it into an appropriate HTTP status and client-facing message.
+A common pattern is for an HTTP handler to receive a request and pass its data to the business logic, which may return an error. The handler is typically responsible for logging the error, mapping it to the relevant HTTP status code and generating an appropriate message for the client.
 
-The handler must decide:
-* Is this a business error (log at info/debug) or a server/internal error (warn/error)?
-* Which status code should be returned?
+In standard Go, the business logic returns typed errors and the handlers use type switches to determine the response. However, DeepStack errors use a single error type, which renders this approach incompatible.
 
-Using the standard Go approach, you would use typed errors and switch on type. However, with DeepStack errors, there is only one error type that conflicts with the standard approach. Instead, you can assign a classification to the DeepStack error based on its context and allow the handler to interpret it.
+Instead, we define a set of error messages that can safely be exposed to clients. If the error matches one of these strings, it is returned unchanged. Otherwise, a default message is used to ensure that no sensitive error messages are returned. For example:
 
-```go
-const ErrorTypeField = "error_type"
+```text
 
-type ErrorType string
+var expectedErrors = deepstack.MapOf("service not configured", "operation not allowed")
 
-const (
-    ErrorTypeNotFound     ErrorType = "not found"
-    ErrorTypeUnauthorized ErrorType = "unauthorized"
-    ErrorTypeInternal     ErrorType = "internal"
-)
+func SomeHandler(w http.ResponseWriter, r *http.Request) {
+    if err := BusinessLogicServer.DoStuff(); err != nil {
+        deepstack.WriteResponseError(w, expectedErrors, err)
+        return
+    }
+}
 ```
-
-When the error occurs, set the `error_type` in the DeepStack error’s context at the point you can classify it. The handler then applies this flow:
-* Cast the error to a DeepStack error.
-  * If casting fails, log it and return 500.
-* Check whether `error_type` is present.
-  * If missing, log it and return 500.
-* Validate that `error_type` is one of the defined values.
-  * If unknown, log it and return 500.
-* If valid, map the type to the appropriate status code and log level, then return that status.
 
 ### Register New Log Handlers
 
-The logging framework comes with console handlers by default. New handlers can be registered when the logger is created, for example to write logs to files or send them to a logging server.
+The logger created by `NewDeepStackLogger()` comes with a console handler by default. Additional log handlers can be registered there to perform actions such as writing logs to files or sending them to a logging server.
 
 ### Contributing
 
