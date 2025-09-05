@@ -158,14 +158,51 @@ In standard Go, the business logic returns typed errors and the handlers use typ
 
 Instead, we define a set of error messages that can safely be exposed to clients. If the error matches one of these strings, it is returned unchanged. Otherwise, a default message is used to ensure that no sensitive error messages are returned. For example:
 
-```text
-
-var expectedErrors = deepstack.MapOf("service not configured", "operation not allowed")
+```go
+var expectedErrors = MapOf("service not configured", "operation not allowed")
 
 func SomeHandler(w http.ResponseWriter, r *http.Request) {
     if err := BusinessLogicServer.DoStuff(); err != nil {
-        deepstack.WriteResponseError(w, expectedErrors, err)
+        WriteResponseError(w, expectedErrors, err)
         return
+    }
+}
+
+func MapOf(expectedErrors ...string) map[string]any {
+    var errorMap = map[string]any{}
+    for _, expectedError := range expectedErrors {
+        errorMap[expectedError] = nil
+    }
+    return errorMap
+}
+
+func WriteResponseError(w http.ResponseWriter, expectedErrors map[string]any, err error, context ...any) {
+    if expectedErrors == nil {
+        expectedErrors = map[string]any{}
+    }
+
+    var actualErrorMessage string
+    deepStackError, isDeepStackError := err.(*deepstack.DeepStackError)
+    if isDeepStackError {
+        actualErrorMessage = deepStackError.Message
+    } else {
+        u.Logger.Warn("expected a DeepStack error, but got a regular error")
+        actualErrorMessage = err.Error()
+    }
+
+    _, isExpectedError := expectedErrors[actualErrorMessage]
+
+    if isExpectedError {
+        // for expected errors, we don't need a stack trace or context of a DeepStackError in the logs
+        u.Logger.Info(actualErrorMessage, context)
+        http.Error(w, actualErrorMessage, http.StatusBadRequest)
+    } else {
+        if isDeepStackError {
+            u.Logger.Error(actualErrorMessage, deepstack.ErrorField, deepStackError, context)
+        } else {
+            u.Logger.Error(actualErrorMessage, context)
+        }
+        http.Error(w, OperationFailedError, http.StatusBadRequest)
     }
 }
 ```
