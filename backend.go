@@ -1,0 +1,64 @@
+package deepstack
+
+import (
+	"context"
+	"log/slog"
+	"runtime"
+	"time"
+)
+
+//go:generate mockery
+type LoggingBackend interface {
+	ShouldLogBeSkipped(level slog.Level) bool
+	LogRecord(logRecord *Record)
+	PrintStackTrace(message string)
+	LogWarning(message string, kv ...any)
+}
+
+// TODO add tests, maybe also dependencies, hide slog dependency somehow?
+type LoggingBackendImpl struct {
+	slog *slog.Logger
+}
+
+func (s *LoggingBackendImpl) PrintStackTrace(stackTrace string) {
+	println(stackTrace)
+}
+
+func (s *LoggingBackendImpl) ShouldLogBeSkipped(level slog.Level) bool {
+	return !s.slog.Handler().Enabled(context.Background(), level)
+}
+
+func (s *LoggingBackendImpl) LogRecord(logRecord *Record) {
+	s.logRecord(logRecord, 5)
+}
+
+func (s *LoggingBackendImpl) logRecord(logRecord *Record, skipFunctionTreeLevels int) {
+	var pcs [1]uintptr
+	runtime.Callers(skipFunctionTreeLevels, pcs[:])
+	slogRecord := slog.NewRecord(time.Now(), logRecord.level, logRecord.msg, pcs[0])
+
+	for key, value := range logRecord.attributes {
+		slogRecord.AddAttrs(slog.Any(key, value))
+	}
+
+	_ = s.slog.Handler().Handle(context.Background(), slogRecord)
+}
+
+func (s *LoggingBackendImpl) LogWarning(message string, kv ...any) {
+	if len(kv) == 0 {
+		record := &Record{
+			level:      slog.LevelWarn,
+			msg:        message,
+			attributes: make(map[string]any),
+		}
+		s.logRecord(record, 6)
+	} else if len(kv) == 2 {
+		// TODO block not covered by tests
+		key, ok := kv[0].(string)
+		if !ok {
+			s.slog.Warn(invalidKeyTypeMessage, slog.Any("key", kv[0]))
+			return
+		}
+		s.slog.Warn(message, slog.Any(key, kv[1]))
+	}
+}

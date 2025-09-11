@@ -1,0 +1,11 @@
+packages:
+  github.com/ocelot-cloud/deepstack:
+    interfaces:
+      LoggingBackend:
+        config:
+          filename: backend_mock.go
+          structname: LoggingBackendMock
+      StackTracer:
+        config:
+          filename: stack_tracer_mock.go
+          structname: StackTracerMock
