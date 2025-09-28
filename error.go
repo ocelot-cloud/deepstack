@@ -9,5 +9,5 @@ type DeepStackError struct {
 }
 
 func (d *DeepStackError) Error() string {
-	return fmt.Sprintf("message: %s; context: %s; stack: %s", d.Message, d.Context, d.StackTrace)
+	return fmt.Sprintf("message: %s; context: %v; stack: %s", d.Message, d.Context, d.StackTrace)
 }
